@@ -6,9 +6,9 @@ This document outlines all the tasks needed to implement the complete multi-tena
 
 ### Task 1.1: Install Required Dependencies
 
-- [ ] Install Clerk authentication: `@clerk/nextjs`
-- [ ] Install database dependencies: `drizzle-orm`, `postgres`
-- [ ] Install dev dependencies: `drizzle-kit`, `@types/node`
+- [x] Install Clerk authentication: `@clerk/nextjs` ✅ v6.32.0
+- [x] Install database dependencies: `drizzle-orm`, `postgres` ✅ v0.44.5, v3.4.7
+- [x] Install dev dependencies: `drizzle-kit`, `@types/node` ✅ v0.31.4, v24.5.2
 
 ### Task 1.2: Configure Shadcn/ui
 
