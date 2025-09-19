@@ -54,9 +54,9 @@ This document outlines all the tasks needed to implement the complete multi-tena
 
 ### Task 3.4: Database Migrations
 
-- [ ] Create initial migration for public.tenants table
-- [ ] Create SQL functions for updated_at triggers
-- [ ] Set up Drizzle configuration file
+- [x] Create initial migration for public.tenants table ✅ 0001_create_tenants.sql
+- [x] Create SQL functions for updated_at triggers ✅ Auto-update timestamp function
+- [x] Set up Drizzle configuration file ✅ drizzle.config.ts with PostgreSQL
 
 ## Phase 4: Authentication & Middleware
 
