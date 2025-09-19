@@ -34,10 +34,10 @@ This document outlines all the tasks needed to implement the complete multi-tena
 
 ### Task 3.1: Database Schemas
 
-- [ ] Create public schema for tenants table
-- [ ] Create tenant schema templates for users table
-- [ ] Create tenant schema templates for projects table
-- [ ] Add proper indexes and constraints
+- [x] Create public schema for tenants table ✅ src/db/schemas/public/tenants.ts
+- [x] Create tenant schema templates for users table ✅ src/db/schemas/tenant/users.ts
+- [x] Create tenant schema templates for projects table ✅ src/db/schemas/tenant/projects.ts
+- [x] Add proper indexes and constraints ✅ Included in table definitions
 
 ### Task 3.2: Database Configuration
 
