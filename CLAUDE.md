@@ -79,3 +79,5 @@ Refer to `docs/complete-multitenant-guide.md` for detailed implementation steps 
 3. **Follow DRY Principles**: Avoid code repetition and follow Don't Repeat Yourself guidelines throughout the implementation.
 
 4. **Reference Guide First**: Before starting any task, always look up the related topic in `docs/complete-multitenant-guide.md` to get proper context on what will be worked on.
+
+5. **Server Components First**: Use Server Components pattern as the default. Pages should be server components to enable server-side queries, fetches, and redirects. Only use Client Components when interactivity is required. Follow component folder structure: `/components/[domain]/[component-name]/component-name.tsx` with barrel exports via `index.ts`.
