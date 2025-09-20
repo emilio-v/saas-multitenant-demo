@@ -76,9 +76,9 @@ This document outlines all the tasks needed to implement the complete multi-tena
 
 ### Task 5.1: Sign In/Up Pages
 
-- [ ] Create sign-in page with Clerk component
-- [ ] Create sign-up page with Clerk component
-- [ ] Style authentication pages with proper layout
+- [x] Create sign-in page with Clerk component ✅ /auth/sign-in with catch-all route
+- [x] Create sign-up page with Clerk component ✅ /auth/sign-up with catch-all route  
+- [x] Style authentication pages with proper layout ✅ Centered layout with gray background
 
 ### Task 5.2: Onboarding Flow
 
