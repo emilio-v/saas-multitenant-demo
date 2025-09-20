@@ -12,6 +12,31 @@ export async function POST(req: Request) {
   try {
     const { clerkOrgId, name, slug } = await req.json();
 
+    // Input validation
+    if (!clerkOrgId || !name || !slug) {
+      return NextResponse.json(
+        { error: "Faltan campos requeridos: clerkOrgId, name, slug" },
+        { status: 400 }
+      );
+    }
+
+    if (typeof name !== "string" || name.trim().length < 2) {
+      return NextResponse.json(
+        { error: "El nombre debe tener al menos 2 caracteres" },
+        { status: 400 }
+      );
+    }
+
+    if (typeof slug !== "string" || !/^[a-z0-9-]+$/.test(slug)) {
+      return NextResponse.json(
+        {
+          error:
+            "El slug debe contener solo letras minúsculas, números y guiones",
+        },
+        { status: 400 }
+      );
+    }
+
     const result = await TenantManager.createTenant(clerkOrgId, name, slug);
 
     return NextResponse.json(result);

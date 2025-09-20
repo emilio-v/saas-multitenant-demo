@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { hasPermission } from "@/lib/permissions";
 
 interface Project {
   id: number;
@@ -91,9 +92,7 @@ export function DashboardView({
               <p className="text-muted-foreground mb-4">
                 No tienes proyectos aún
               </p>
-              {["owner", "admin", "member"].includes(
-                currentUser?.role || ""
-              ) && (
+              {hasPermission(currentUser?.role || "", "projects:create") && (
                 <Button asChild>
                   <Link href={`/${tenant}/projects/new`}>
                     Crear tu primer proyecto

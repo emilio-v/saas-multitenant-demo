@@ -4,6 +4,7 @@ import { TenantManager } from "@/db/config/tenant-manager";
 import { createProjectsTable, createUsersTable } from "@/db/schemas/tenant";
 import { eq, or, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { hasPermission } from "@/lib/permissions";
 
 export async function GET(
   req: Request,
@@ -100,7 +101,14 @@ export async function POST(
       .where(eq(users.id, userId))
       .limit(1);
 
-    if (!currentUser || currentUser.role === "viewer") {
+    if (!currentUser) {
+      return NextResponse.json(
+        { error: "Usuario no encontrado" },
+        { status: 404 }
+      );
+    }
+
+    if (!hasPermission(currentUser.role, "projects:create")) {
       return NextResponse.json(
         { error: "Sin permisos para crear proyectos" },
         { status: 403 }

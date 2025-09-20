@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { hasPermission } from "@/lib/permissions";
 
 interface Project {
   id: number;
@@ -31,9 +32,7 @@ interface ProjectsListProps {
 }
 
 export function ProjectsList({ projects, currentUser, tenant }: ProjectsListProps) {
-  const canCreateProject = ["owner", "admin", "member"].includes(
-    currentUser?.role || ""
-  );
+  const canCreateProject = hasPermission(currentUser?.role || "", "projects:create");
 
   return (
     <div className="space-y-6">
