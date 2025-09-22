@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import { getTenantDb } from "@/db/config/database";
 import { TenantManager } from "@/db/config/tenant-manager";
 import { createUsersTable, createProjectsTable } from "@/db/schemas/tenant";
@@ -28,6 +29,11 @@ export default async function DashboardPage({
     .where(eq(users.id, userId))
     .limit(1);
 
+  // Si el usuario no existe en la base de datos del tenant, redirigir a onboarding
+  if (!currentUser) {
+    redirect("/auth/onboarding");
+  }
+
   // Obtener proyectos recientes del usuario
   const recentProjects = await tenantDb
     .select()
@@ -47,7 +53,7 @@ export default async function DashboardPage({
 
   return (
     <DashboardView
-      currentUser={currentUser || null}
+      currentUser={currentUser}
       recentProjects={recentProjects}
       totalProjects={totalProjects}
       totalUsers={totalUsers}

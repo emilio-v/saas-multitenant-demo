@@ -11,22 +11,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 export function Onboarding() {
   const { isLoaded: authLoaded, userId } = useAuth();
   const { user } = useUser();
-  const { userMemberships, createOrganization, setActive } =
-    useOrganizationList({
-      userMemberships: true
-    });
+  const { userMemberships } = useOrganizationList({
+    userMemberships: true
+  });
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    orgName: "",
-    slug: "",
-  });
 
   useEffect(() => {
     if (authLoaded && !userId) {
@@ -34,46 +27,24 @@ export function Onboarding() {
       return;
     }
 
-    // Si ya tiene una organización, redirigir
-    if (userMemberships?.data && userMemberships.data.length > 0) {
-      const org = userMemberships.data[0];
-      router.push(`/${org.organization.slug}/dashboard`);
+    // If user has no organization, redirect to sign-up (shouldn't happen)
+    if (authLoaded && userMemberships?.data?.length === 0) {
+      router.push("/auth/sign-up");
     }
   }, [authLoaded, userId, userMemberships, router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!createOrganization || !setActive) return;
+  const handleCompleteOnboarding = async () => {
+    if (!userMemberships?.data || userMemberships.data.length === 0) {
+      return;
+    }
 
     setLoading(true);
 
     try {
-      // Crear organización en Clerk
-      const org = await createOrganization({
-        name: formData.orgName,
-        slug: formData.slug,
-      });
+      const org = userMemberships.data[0].organization;
 
-      // Activar la organización
-      await setActive({ organization: org.id });
-
-      // Crear tenant en base de datos
-      const response = await fetch("/api/tenants", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          clerkOrgId: org.id,
-          name: formData.orgName,
-          slug: formData.slug,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Error al crear el tenant");
-      }
-
-      // Crear usuario en el tenant como owner
-      const userResponse = await fetch(`/api/tenants/${formData.slug}/users`, {
+      // First, create user in tenant database as owner
+      const userResponse = await fetch(`/api/tenants/${org.slug}/users`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -82,14 +53,28 @@ export function Onboarding() {
       });
 
       if (!userResponse.ok) {
-        throw new Error("Error al crear el usuario");
+        const userError = await userResponse.json();
+        if (!userError.error?.includes("duplicate")) {
+          throw new Error("Error al crear el usuario");
+        }
+        // If user already exists, continue
       }
 
-      // Redirigir al dashboard
-      router.push(`/${formData.slug}/dashboard`);
+      // Then complete onboarding
+      const onboardingResponse = await fetch(`/api/tenants/${org.slug}/users/onboarding`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!onboardingResponse.ok) {
+        throw new Error("Error al completar onboarding");
+      }
+
+      // Redirect to dashboard
+      router.push(`/${org.slug}/dashboard`);
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al crear la organización. Por favor intenta de nuevo.");
+      alert("Error al completar el onboarding. Por favor intenta de nuevo.");
       setLoading(false);
     }
   };
@@ -98,52 +83,25 @@ export function Onboarding() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <Card className="w-[450px]">
         <CardHeader>
-          <CardTitle>Bienvenido, {user?.firstName || "Usuario"}</CardTitle>
-          <CardDescription>Crea tu organización para comenzar</CardDescription>
+          <CardTitle>¡Bienvenido, {user?.firstName || "Usuario"}!</CardTitle>
+          <CardDescription>
+            Tu organización ha sido creada exitosamente. ¡Estás listo para comenzar!
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="orgName">Nombre de la organización</Label>
-              <Input
-                id="orgName"
-                value={formData.orgName}
-                onChange={(e) =>
-                  setFormData({ ...formData, orgName: e.target.value })
-                }
-                placeholder="Mi Empresa"
-                required
-                disabled={loading}
-              />
+          <div className="space-y-4 text-center">
+            <div className="text-sm text-muted-foreground">
+              Tu cuenta está configurada y lista para usar.
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="slug">Identificador único (URL)</Label>
-              <Input
-                id="slug"
-                value={formData.slug}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    slug: e.target.value
-                      .toLowerCase()
-                      .replace(/[^a-z0-9-]/g, ""),
-                  })
-                }
-                placeholder="mi-empresa"
-                pattern="[a-z0-9-]+"
-                required
-                disabled={loading}
-              />
-              <p className="text-xs text-muted-foreground">
-                Tu URL será: {formData.slug || "mi-empresa"}.localhost:3000
-              </p>
-            </div>
-
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creando..." : "Crear Organización"}
+            
+            <Button 
+              onClick={handleCompleteOnboarding} 
+              className="w-full" 
+              disabled={loading}
+            >
+              {loading ? "Finalizando..." : "Continuar al Dashboard"}
             </Button>
-          </form>
+          </div>
         </CardContent>
       </Card>
     </div>

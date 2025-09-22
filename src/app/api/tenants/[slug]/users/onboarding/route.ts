@@ -3,6 +3,7 @@ import { getTenantDb } from "@/db/config/database";
 import { TenantManager } from "@/db/config/tenant-manager";
 import { createUsersTable } from "@/db/schemas/tenant";
 import { NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 
 export async function POST(
   req: Request,
@@ -15,7 +16,6 @@ export async function POST(
   }
 
   try {
-    const { role = "member" } = await req.json();
     const { slug } = await params;
 
     const tenant = await TenantManager.getTenantBySlug(slug);
@@ -29,21 +29,23 @@ export async function POST(
     const tenantDb = getTenantDb(tenant.schemaName);
     const users = createUsersTable(tenant.schemaName);
 
-    await tenantDb.insert(users).values({
-      id: user.id,
-      email: user.emailAddresses[0].emailAddress,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      avatarUrl: user.imageUrl,
-      role,
-      metadata: { onboardingComplete: false },
-    });
+    // Update user metadata to mark onboarding as complete
+    await tenantDb
+      .update(users)
+      .set({
+        metadata: { onboardingComplete: true },
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, user.id));
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+      success: true,
+      message: "Onboarding completed successfully" 
+    });
   } catch (error) {
-    console.error("Error creating user:", error);
+    console.error("Error completing onboarding:", error);
     return NextResponse.json(
-      { error: "Error al crear usuario" },
+      { error: "Error al completar onboarding" },
       { status: 500 }
     );
   }

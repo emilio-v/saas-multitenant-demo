@@ -47,6 +47,7 @@ export class TenantManager {
         last_name VARCHAR(255),
         avatar_url VARCHAR(500),
         role VARCHAR(50) DEFAULT 'member' NOT NULL,
+        metadata JSONB DEFAULT '{}' NOT NULL,
         is_active BOOLEAN DEFAULT true,
         last_seen_at TIMESTAMP,
         joined_at TIMESTAMP DEFAULT NOW() NOT NULL,
