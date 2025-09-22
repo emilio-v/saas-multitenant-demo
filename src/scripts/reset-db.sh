@@ -32,7 +32,7 @@ echo ""
 echo "🚀 Running TypeScript reset script..."
 
 # Run the TypeScript reset script
-bun run scripts/reset-db.ts
+bun run src/scripts/reset-db.ts
 
 if [ $? -eq 0 ]; then
     echo ""
