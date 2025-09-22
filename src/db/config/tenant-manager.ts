@@ -105,6 +105,10 @@ export class TenantManager {
     return tenant;
   }
 
+  static async getAllTenants() {
+    return await db.select().from(tenants);
+  }
+
   private static async dropTenant(schemaName: string) {
     try {
       await db.execute(`DROP SCHEMA IF EXISTS "${schemaName}" CASCADE`);
