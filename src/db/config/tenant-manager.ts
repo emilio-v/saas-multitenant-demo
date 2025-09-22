@@ -49,6 +49,9 @@ export class TenantManager {
       .filter(file => file.endsWith('.sql'))
       .sort(); // Apply migrations in order
     
+    // Get tenant-specific database connection with correct search_path
+    const tenantDb = getTenantDb(schemaName);
+    
     // Apply each migration to the tenant schema
     for (const migrationFile of migrationFiles) {
       console.log(`  🔄 Applying ${migrationFile}...`);
@@ -56,10 +59,8 @@ export class TenantManager {
       const migrationPath = join(migrationsPath, migrationFile);
       const migrationSql = readFileSync(migrationPath, 'utf8');
       
-      // Replace schema placeholders with actual tenant schema name
-      const tenantSql = migrationSql.replace(/\$TENANT_SCHEMA\$/g, schemaName);
-      
-      await db.execute(tenantSql);
+      // Execute migration with tenant-specific connection
+      await tenantDb.execute(migrationSql);
     }
     
     console.log(`  ✅ All migrations applied to ${schemaName}`);

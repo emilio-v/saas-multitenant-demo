@@ -6,9 +6,9 @@ import {
   serial,
   text,
 } from "drizzle-orm/pg-core";
-import { users } from "./users";
+import { users, tenantSchema } from "./users";
 
-// Schema definition for DRY principle - shared between static and dynamic usage
+// Schema definition for DRY principle - shared between static and dynamic usage  
 const projectsTableSchema = {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
@@ -21,10 +21,10 @@ const projectsTableSchema = {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 };
 
-// Static export for Drizzle Kit migration generation
-export const projects = pgTable("projects", projectsTableSchema);
+// Static export for Drizzle Kit migration generation (uses tenant schema)
+export const projects = tenantSchema.table("projects", projectsTableSchema);
 
-// Factory function for runtime tenant creation
+// Factory function for runtime tenant creation  
 export const createProjectsTable = () => {
   return pgTable("projects", projectsTableSchema);
 };

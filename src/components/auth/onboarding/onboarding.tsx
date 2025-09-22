@@ -1,7 +1,7 @@
 "use client";
 
-import { useAuth, useOrganizationList, useUser } from "@clerk/nextjs";
-import { useState, useEffect } from "react";
+import { useOrganizationList, useUser } from "@clerk/nextjs";
+import { useState} from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -13,25 +13,12 @@ import {
 import { Button } from "@/components/ui/button";
 
 export function Onboarding() {
-  const { isLoaded: authLoaded, userId } = useAuth();
   const { user } = useUser();
   const { userMemberships } = useOrganizationList({
     userMemberships: true
   });
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (authLoaded && !userId) {
-      router.push("/auth/sign-in");
-      return;
-    }
-
-    // If user has no organization, redirect to sign-up (shouldn't happen)
-    if (authLoaded && userMemberships?.data?.length === 0) {
-      router.push("/auth/sign-up");
-    }
-  }, [authLoaded, userId, userMemberships, router]);
 
   const handleCompleteOnboarding = async () => {
     if (!userMemberships?.data || userMemberships.data.length === 0) {

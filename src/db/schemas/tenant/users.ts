@@ -1,4 +1,7 @@
-import { pgTable, varchar, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, pgSchema, varchar, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
+
+// Create a tenant schema for migration generation (using generic "tenant" schema)
+export const tenantSchema = pgSchema("tenant");
 
 // Schema definition for DRY principle - shared between static and dynamic usage
 const usersTableSchema = {
@@ -16,8 +19,8 @@ const usersTableSchema = {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 };
 
-// Static export for Drizzle Kit migration generation
-export const users = pgTable("users", usersTableSchema);
+// Static export for Drizzle Kit migration generation (uses tenant schema)
+export const users = tenantSchema.table("users", usersTableSchema);
 
 // Factory function for runtime tenant creation
 export const createUsersTable = () => {

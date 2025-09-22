@@ -1,12 +1,12 @@
 {
-  "id": "16b6b328-1101-41b0-9e49-f2e40f071024",
+  "id": "a2c9971f-8a10-4fe7-a15b-82a39e5d1ae4",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.users": {
+    "tenant.users": {
       "name": "users",
-      "schema": "",
+      "schema": "tenant",
       "columns": {
         "id": {
           "name": "id",
@@ -103,9 +103,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.projects": {
+    "tenant.projects": {
       "name": "projects",
-      "schema": "",
+      "schema": "tenant",
       "columns": {
         "id": {
           "name": "id",
@@ -172,6 +172,7 @@
           "name": "projects_created_by_users_id_fk",
           "tableFrom": "projects",
           "tableTo": "users",
+          "schemaTo": "tenant",
           "columnsFrom": [
             "created_by"
           ],
@@ -198,7 +199,9 @@
     }
   },
   "enums": {},
-  "schemas": {},
+  "schemas": {
+    "tenant": "tenant"
+  },
   "sequences": {},
   "roles": {},
   "policies": {},
