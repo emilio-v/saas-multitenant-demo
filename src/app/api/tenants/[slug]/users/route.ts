@@ -27,7 +27,7 @@ export async function POST(
     }
 
     const tenantDb = getTenantDb(tenant.schemaName);
-    const users = createUsersTable(tenant.schemaName);
+    const users = createUsersTable();
 
     await tenantDb.insert(users).values({
       id: user.id,
