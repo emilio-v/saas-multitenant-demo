@@ -1,7 +1,6 @@
 "use client";
 
 import { useOrganizationList, useUser } from "@clerk/nextjs";
-import { useState} from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -18,51 +17,30 @@ export function Onboarding() {
     userMemberships: true
   });
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
 
   const handleCompleteOnboarding = async () => {
     if (!userMemberships?.data || userMemberships.data.length === 0) {
       return;
     }
 
-    setLoading(true);
-
+    const org = userMemberships.data[0].organization;
+    
     try {
-      const org = userMemberships.data[0].organization;
-
-      // First, create user in tenant database as owner
-      const userResponse = await fetch(`/api/tenants/${org.slug}/users`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          role: "owner",
-        }),
-      });
-
-      if (!userResponse.ok) {
-        const userError = await userResponse.json();
-        if (!userError.error?.includes("duplicate")) {
-          throw new Error("Error al crear el usuario");
-        }
-        // If user already exists, continue
-      }
-
-      // Then complete onboarding
+      // Complete onboarding by updating the metadata
       const onboardingResponse = await fetch(`/api/tenants/${org.slug}/users/onboarding`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
 
       if (!onboardingResponse.ok) {
-        throw new Error("Error al completar onboarding");
+        throw new Error("Error completing onboarding");
       }
 
       // Redirect to dashboard
       router.push(`/${org.slug}/dashboard`);
     } catch (error) {
-      console.error("Error:", error);
-      alert("Error al completar el onboarding. Por favor intenta de nuevo.");
-      setLoading(false);
+      console.error("Error completing onboarding:", error);
+      alert("Error completing onboarding. Please try again.");
     }
   };
 
@@ -83,10 +61,9 @@ export function Onboarding() {
             
             <Button 
               onClick={handleCompleteOnboarding} 
-              className="w-full" 
-              disabled={loading}
+              className="w-full"
             >
-              {loading ? "Finalizando..." : "Continuar al Dashboard"}
+              Continuar al Dashboard
             </Button>
           </div>
         </CardContent>
