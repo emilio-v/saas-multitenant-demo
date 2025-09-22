@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:reset": "bun run scripts/reset-db.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.32.0",
