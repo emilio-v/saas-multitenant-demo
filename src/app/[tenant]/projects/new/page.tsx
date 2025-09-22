@@ -9,12 +9,13 @@ import { NewProjectForm } from "@/components/projects/new-project-form";
 export default async function NewProjectPage({
   params,
 }: {
-  params: { tenant: string };
+  params: Promise<{ tenant: string }>;
 }) {
   const { userId } = await auth();
   if (!userId) return null;
 
-  const tenant = await TenantManager.getTenantBySlug(params.tenant);
+  const { tenant: tenantSlug } = await params;
+  const tenant = await TenantManager.getTenantBySlug(tenantSlug);
   if (!tenant) return null;
 
   const tenantDb = getTenantDb(tenant.schemaName);
@@ -28,8 +29,8 @@ export default async function NewProjectPage({
 
   // Verificar permisos para crear proyectos
   if (!["owner", "admin", "member"].includes(currentUser?.role || "")) {
-    redirect(`/${params.tenant}/projects`);
+    redirect(`/${tenantSlug}/projects`);
   }
 
-  return <NewProjectForm tenant={params.tenant} />;
+  return <NewProjectForm tenant={tenantSlug} />;
 }

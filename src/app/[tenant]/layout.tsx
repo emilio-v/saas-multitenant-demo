@@ -5,7 +5,7 @@ import { UserButton } from "@clerk/nextjs";
 
 interface TenantLayoutProps {
   children: React.ReactNode;
-  params: { tenant: string };
+  params: Promise<{ tenant: string }>;
 }
 
 export default async function TenantLayout({
@@ -13,6 +13,7 @@ export default async function TenantLayout({
   params,
 }: TenantLayoutProps) {
   const { userId, orgId, orgSlug } = await auth();
+  const { tenant } = await params;
 
   // Verificar autenticación
   if (!userId) {
@@ -25,13 +26,13 @@ export default async function TenantLayout({
   }
 
   // Verificar que el slug de la URL coincide con la org del usuario
-  if (params.tenant !== orgSlug) {
+  if (tenant !== orgSlug) {
     redirect(`/${orgSlug}/dashboard`);
   }
 
   // Verificar que el tenant existe
-  const tenant = await TenantManager.getTenantBySlug(params.tenant);
-  if (!tenant) {
+  const tenantRecord = await TenantManager.getTenantBySlug(tenant);
+  if (!tenantRecord) {
     redirect("/auth/onboarding");
   }
 
@@ -41,19 +42,19 @@ export default async function TenantLayout({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <h1 className="text-xl font-semibold">{tenant.name}</h1>
+              <h1 className="text-xl font-semibold">{tenantRecord.name}</h1>
             </div>
 
             <div className="flex items-center space-x-4">
               <nav className="flex space-x-4">
                 <a
-                  href={`/${params.tenant}/dashboard`}
+                  href={`/${tenant}/dashboard`}
                   className="text-gray-700 hover:text-gray-900"
                 >
                   Dashboard
                 </a>
                 <a
-                  href={`/${params.tenant}/projects`}
+                  href={`/${tenant}/projects`}
                   className="text-gray-700 hover:text-gray-900"
                 >
                   Proyectos

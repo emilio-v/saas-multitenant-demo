@@ -8,12 +8,13 @@ import { ProjectsList } from "@/components/projects/projects-list";
 export default async function ProjectsPage({
   params,
 }: {
-  params: { tenant: string };
+  params: Promise<{ tenant: string }>;
 }) {
   const { userId } = await auth();
   if (!userId) return null;
 
-  const tenant = await TenantManager.getTenantBySlug(params.tenant);
+  const { tenant: tenantSlug } = await params;
+  const tenant = await TenantManager.getTenantBySlug(tenantSlug);
   if (!tenant) return null;
 
   const tenantDb = getTenantDb(tenant.schemaName);
@@ -45,7 +46,7 @@ export default async function ProjectsPage({
     <ProjectsList 
       projects={allProjects}
       currentUser={currentUser || null}
-      tenant={params.tenant}
+      tenant={tenantSlug}
     />
   );
 }

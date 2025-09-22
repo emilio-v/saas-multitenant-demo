@@ -8,16 +8,17 @@ import { hasPermission } from "@/lib/permissions";
 
 export async function GET(
   req: Request,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   const { userId, orgSlug } = await auth();
+  const { slug } = await params;
 
-  if (!userId || orgSlug !== params.slug) {
+  if (!userId || orgSlug !== slug) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
   try {
-    const tenant = await TenantManager.getTenantBySlug(params.slug);
+    const tenant = await TenantManager.getTenantBySlug(slug);
     if (!tenant) {
       return NextResponse.json(
         { error: "Tenant no encontrado" },
@@ -72,18 +73,24 @@ export async function GET(
 
 export async function POST(
   req: Request,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   const { userId, orgSlug } = await auth();
+  const { slug } = await params;
 
-  if (!userId || orgSlug !== params.slug) {
+  if (!userId || orgSlug !== slug) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
   try {
-    const { name, description, slug, isPublic = false } = await req.json();
+    const {
+      name,
+      description,
+      slug: projectSlug,
+      isPublic = false,
+    } = await req.json();
 
-    const tenant = await TenantManager.getTenantBySlug(params.slug);
+    const tenant = await TenantManager.getTenantBySlug(slug);
     if (!tenant) {
       return NextResponse.json(
         { error: "Tenant no encontrado" },
@@ -119,7 +126,7 @@ export async function POST(
       .insert(projects)
       .values({
         name,
-        slug: slug || name.toLowerCase().replace(/\s+/g, "-"),
+        slug: projectSlug || name.toLowerCase().replace(/\s+/g, "-"),
         description,
         createdBy: userId,
         isPublic,

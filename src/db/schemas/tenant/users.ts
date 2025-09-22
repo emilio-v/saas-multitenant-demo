@@ -1,7 +1,7 @@
 import { pgTable, varchar, timestamp, boolean } from "drizzle-orm/pg-core";
 
 export const createUsersTable = (schemaName: string) => {
-  return pgTable(`${schemaName}.users`, {
+  return pgTable("users", {
     id: varchar("id", { length: 255 }).primaryKey(), // clerk_user_id
     email: varchar("email", { length: 255 }).unique().notNull(),
     firstName: varchar("first_name", { length: 255 }),

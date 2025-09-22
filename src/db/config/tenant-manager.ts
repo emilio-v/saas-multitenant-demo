@@ -7,6 +7,16 @@ export class TenantManager {
     const schemaName = `tenant_${slug.replace(/-/g, "_")}`;
 
     try {
+      // Check if tenant already exists
+      const existingTenant = await this.getTenantByClerkOrgId(clerkOrgId);
+      if (existingTenant) {
+        return {
+          success: true,
+          schemaName: existingTenant.schemaName,
+          existing: true,
+        };
+      }
+
       await db.insert(tenants).values({
         id: clerkOrgId,
         name,
@@ -19,7 +29,11 @@ export class TenantManager {
 
       return { success: true, schemaName };
     } catch (error) {
-      await this.dropTenant(schemaName);
+      // Only drop tenant if it wasn't already existing
+      const existingTenant = await this.getTenantByClerkOrgId(clerkOrgId);
+      if (!existingTenant) {
+        await this.dropTenant(schemaName);
+      }
       throw error;
     }
   }
@@ -75,6 +89,16 @@ export class TenantManager {
       .select()
       .from(tenants)
       .where(eq(tenants.id, id))
+      .limit(1);
+
+    return tenant;
+  }
+
+  static async getTenantByClerkOrgId(clerkOrgId: string) {
+    const [tenant] = await db
+      .select()
+      .from(tenants)
+      .where(eq(tenants.id, clerkOrgId))
       .limit(1);
 
     return tenant;

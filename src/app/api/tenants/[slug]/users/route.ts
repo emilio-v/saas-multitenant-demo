@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 
 export async function POST(
   req: Request,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   const user = await currentUser();
 
@@ -16,8 +16,9 @@ export async function POST(
 
   try {
     const { role = "member" } = await req.json();
+    const { slug } = await params;
 
-    const tenant = await TenantManager.getTenantBySlug(params.slug);
+    const tenant = await TenantManager.getTenantBySlug(slug);
     if (!tenant) {
       return NextResponse.json(
         { error: "Tenant no encontrado" },

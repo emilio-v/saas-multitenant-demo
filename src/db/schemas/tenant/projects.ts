@@ -8,7 +8,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 export const createProjectsTable = (schemaName: string) => {
-  return pgTable(`${schemaName}.projects`, {
+  return pgTable("projects", {
     id: serial("id").primaryKey(),
     name: varchar("name", { length: 255 }).notNull(),
     slug: varchar("slug", { length: 255 }).unique().notNull(),
