@@ -9,12 +9,34 @@ export class TenantManager {
     const schemaName = `tenant_${slug.replace(/-/g, "_")}`;
 
     try {
-      // Check if tenant already exists
-      const existingTenant = await this.getTenantByClerkOrgId(clerkOrgId);
-      if (existingTenant) {
+      // Check if tenant already exists by clerkOrgId
+      const existingTenantById = await this.getTenantByClerkOrgId(clerkOrgId);
+      if (existingTenantById) {
+        // Ensure migrations are applied even for existing tenants
+        await db.execute(`CREATE SCHEMA IF NOT EXISTS "${existingTenantById.schemaName}"`);
+        await this.applyTenantMigrations(existingTenantById.schemaName);
         return {
           success: true,
-          schemaName: existingTenant.schemaName,
+          schemaName: existingTenantById.schemaName,
+          existing: true,
+        };
+      }
+
+      // Check if tenant already exists by slug (unique constraint)
+      const existingTenantBySlug = await this.getTenantBySlug(slug);
+      if (existingTenantBySlug) {
+        console.log(`⚠️  Tenant with slug '${slug}' already exists for different organization`);
+        // Update the existing tenant record with the new clerkOrgId
+        await db.update(tenants)
+          .set({ id: clerkOrgId, name, updatedAt: new Date() })
+          .where(eq(tenants.slug, slug));
+        
+        // Ensure migrations are applied
+        await db.execute(`CREATE SCHEMA IF NOT EXISTS "${existingTenantBySlug.schemaName}"`);
+        await this.applyTenantMigrations(existingTenantBySlug.schemaName);
+        return {
+          success: true,
+          schemaName: existingTenantBySlug.schemaName,
           existing: true,
         };
       }

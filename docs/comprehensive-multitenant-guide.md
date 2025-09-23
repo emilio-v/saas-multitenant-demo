@@ -407,12 +407,34 @@ export class TenantManager {
     const schemaName = `tenant_${slug.replace(/-/g, "_")}`;
 
     try {
-      // Check if tenant already exists
-      const existingTenant = await this.getTenantByClerkOrgId(clerkOrgId);
-      if (existingTenant) {
+      // Check if tenant already exists by clerkOrgId
+      const existingTenantById = await this.getTenantByClerkOrgId(clerkOrgId);
+      if (existingTenantById) {
+        // Ensure migrations are applied even for existing tenants
+        await db.execute(`CREATE SCHEMA IF NOT EXISTS "${existingTenantById.schemaName}"`);
+        await this.applyTenantMigrations(existingTenantById.schemaName);
         return {
           success: true,
-          schemaName: existingTenant.schemaName,
+          schemaName: existingTenantById.schemaName,
+          existing: true,
+        };
+      }
+
+      // Check if tenant already exists by slug (unique constraint)
+      const existingTenantBySlug = await this.getTenantBySlug(slug);
+      if (existingTenantBySlug) {
+        console.log(`⚠️  Tenant with slug '${slug}' already exists for different organization`);
+        // Update the existing tenant record with the new clerkOrgId
+        await db.update(tenants)
+          .set({ id: clerkOrgId, name, updatedAt: new Date() })
+          .where(eq(tenants.slug, slug));
+        
+        // Ensure migrations are applied
+        await db.execute(`CREATE SCHEMA IF NOT EXISTS "${existingTenantBySlug.schemaName}"`);
+        await this.applyTenantMigrations(existingTenantBySlug.schemaName);
+        return {
+          success: true,
+          schemaName: existingTenantBySlug.schemaName,
           existing: true,
         };
       }
@@ -528,6 +550,27 @@ export class TenantManager {
   }
 }
 ```
+
+#### Robustness Features
+
+The `TenantManager.createTenant()` method includes several robustness features for production environments:
+
+**1. Existing Tenant Handling**
+- **By Organization ID**: If the same Clerk organization calls the webhook multiple times, it ensures migrations are applied
+- **By Slug**: If an organization is deleted and recreated in Clerk with the same name, it updates the existing tenant record with the new organization ID
+
+**2. Migration Consistency**
+- Always applies missing migrations for existing tenants
+- Creates schema if it doesn't exist (handles partial creation scenarios)  
+- Idempotent migration tracking prevents duplicate applications
+
+**3. Production Edge Cases**
+- **Webhook retry scenarios**: Handles multiple webhook deliveries gracefully
+- **Organization recreation**: Seamlessly handles Clerk org deletion/recreation
+- **Schema drift**: Ensures existing tenants get latest schema updates
+- **Partial failures**: Recovers from incomplete tenant creation
+
+This ensures robust operation across different deployment scenarios, database providers (Docker PostgreSQL, Supabase), and Clerk webhook behavior.
 
 ### 2. Migration Scripts
 
