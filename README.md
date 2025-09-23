@@ -39,8 +39,9 @@ bun install
 
 ### 2. Database Setup
 
-Start PostgreSQL with Docker:
+The application supports any PostgreSQL-compatible database. Choose one of:
 
+**Option A: Docker PostgreSQL (Recommended for Development)**
 ```bash
 docker run --name saas_multitenant_demo \
   -e POSTGRES_PASSWORD=password \
@@ -49,6 +50,14 @@ docker run --name saas_multitenant_demo \
   -p 5432:5432 \
   -d postgres:15-alpine
 ```
+
+**Option B: Supabase (Cloud PostgreSQL)**
+1. Create a new project at [supabase.com](https://supabase.com)
+2. Get your database URL from Settings > Database
+3. Use the connection string in your `.env.local` file
+
+**Option C: Any PostgreSQL Provider**
+The system works with any PostgreSQL 12+ database that supports schemas.
 
 ### 3. Environment Setup
 
@@ -61,8 +70,11 @@ cp .env.example .env.local
 Then update `.env.local` with your values:
 
 ```env
-# Database (matches Docker setup above)
+# Database - Choose one based on your setup:
+# Docker PostgreSQL:
 DATABASE_URL="postgresql://user:password@localhost:5432/saas_multitenant"
+# Supabase:
+# DATABASE_URL="postgresql://postgres:[password]@[host]:5432/postgres"
 
 # Clerk Authentication (get from Clerk Dashboard)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."

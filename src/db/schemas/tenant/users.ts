@@ -31,6 +31,10 @@ const usersTableSchema = {
 export const users = tenantSchema.table("users", usersTableSchema);
 
 // Factory function for runtime tenant creation
-export const createUsersTable = () => {
+export const createUsersTable = (schemaName?: string) => {
+  if (schemaName) {
+    const schema = pgSchema(schemaName);
+    return schema.table("users", usersTableSchema);
+  }
   return pgTable("users", usersTableSchema);
 };

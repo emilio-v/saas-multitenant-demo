@@ -18,8 +18,8 @@ export default async function ProjectsPage({
   if (!tenant) return null;
 
   const tenantDb = getTenantDb(tenant.schemaName);
-  const users = createUsersTable();
-  const projects = createProjectsTable();
+  const users = createUsersTable(tenant.schemaName);
+  const projects = createProjectsTable(tenant.schemaName);
 
   const [currentUser] = await tenantDb
     .select()

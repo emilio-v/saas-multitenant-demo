@@ -1,5 +1,6 @@
 import {
   pgTable,
+  pgSchema,
   varchar,
   timestamp,
   boolean,
@@ -25,6 +26,10 @@ const projectsTableSchema = {
 export const projects = tenantSchema.table("projects", projectsTableSchema);
 
 // Factory function for runtime tenant creation  
-export const createProjectsTable = () => {
+export const createProjectsTable = (schemaName?: string) => {
+  if (schemaName) {
+    const schema = pgSchema(schemaName);
+    return schema.table("projects", projectsTableSchema);
+  }
   return pgTable("projects", projectsTableSchema);
 };

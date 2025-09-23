@@ -57,8 +57,10 @@ This is a Next.js 15.5.3 application using the App Router architecture with:
 ### Key Features
 
 - **Advanced Multi-tenant Architecture**: Each tenant gets its own PostgreSQL schema with complete isolation
+- **Database Compatibility**: Works consistently across PostgreSQL providers (Docker PostgreSQL, Supabase, etc.)
 - **Webhook Integration**: Automatic tenant creation via Clerk organization webhooks
 - **Migration System**: Sophisticated database migrations with tracking, rollbacks, and tenant-specific applications
+- **Schema-Aware Operations**: All database operations use explicit schema references for cross-database compatibility
 - **Subdomain Routing**: Tenants access via `tenant-name.localhost:3000`
 - **Authentication Flow**: Sign-up → Organization Creation (webhook) → Automatic Tenant Setup → Dashboard Access
 - **Role System**: owner, admin, member, viewer with granular permissions and database-level enforcement
@@ -98,4 +100,9 @@ This is a Next.js 15.5.3 application using the App Router architecture with:
    - Replace `"tenant"` with `$TENANT_SCHEMA$` in generated files
    - Test with existing tenants using `bun run db:migrate:tenants`
 
-6. **Server Components First**: Use Server Components pattern as the default. Pages should be server components to enable server-side queries, fetches, and redirects. Only use Client Components when interactivity is required. Follow component folder structure: `/components/[domain]/[component-name]/component-name.tsx` with barrel exports via `index.ts`.
+6. **Schema-Aware Database Operations**: Always use schema-aware table references:
+   - Use `createUsersTable(tenant.schemaName)` instead of `createUsersTable()`
+   - Use `createProjectsTable(tenant.schemaName)` instead of `createProjectsTable()`
+   - This ensures compatibility across different PostgreSQL providers
+
+7. **Server Components First**: Use Server Components pattern as the default. Pages should be server components to enable server-side queries, fetches, and redirects. Only use Client Components when interactivity is required. Follow component folder structure: `/components/[domain]/[component-name]/component-name.tsx` with barrel exports via `index.ts`.

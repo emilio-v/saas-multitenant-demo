@@ -91,7 +91,7 @@ export async function POST(req: Request) {
 
       // Create the owner user in the tenant schema
       const tenantDb = getTenantDb(result.schemaName);
-      const users = createUsersTable();
+      const users = createUsersTable(result.schemaName);
 
       await tenantDb.insert(users).values({
         id: user.id,

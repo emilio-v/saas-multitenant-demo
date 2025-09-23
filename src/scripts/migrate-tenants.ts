@@ -39,7 +39,7 @@ async function migrateTenants() {
 
       // Create migrations tracking table if it doesn't exist
       await tenantDb.execute(`
-        CREATE TABLE IF NOT EXISTS "_migrations" (
+        CREATE TABLE IF NOT EXISTS "${tenant.schemaName}"."_migrations" (
           id SERIAL PRIMARY KEY,
           filename VARCHAR(255) NOT NULL UNIQUE,
           applied_at TIMESTAMP DEFAULT NOW()
@@ -50,7 +50,7 @@ async function migrateTenants() {
       const tablesExist = await tenantDb.execute(`
         SELECT EXISTS (
           SELECT FROM information_schema.tables 
-          WHERE table_name = 'users'
+          WHERE table_schema = '${tenant.schemaName}' AND table_name = 'users'
         ) as users_exists
       `);
 
@@ -59,7 +59,7 @@ async function migrateTenants() {
 
       // Get already applied migrations
       const appliedMigrations = await tenantDb.execute(`
-        SELECT filename FROM "_migrations"
+        SELECT filename FROM "${tenant.schemaName}"."_migrations"
       `);
       const appliedSet = new Set(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -70,7 +70,7 @@ async function migrateTenants() {
       if (hasExistingTables && appliedSet.size === 0) {
         console.log(`  📋 Marking existing tables as migrated...`);
         await tenantDb.execute(`
-          INSERT INTO "_migrations" (filename) VALUES ('0000_steep_hedge_knight.sql')
+          INSERT INTO "${tenant.schemaName}"."_migrations" (filename) VALUES ('0000_steep_hedge_knight.sql')
           ON CONFLICT (filename) DO NOTHING
         `);
         appliedSet.add("0000_steep_hedge_knight.sql");
@@ -98,7 +98,7 @@ async function migrateTenants() {
 
         // Record that this migration has been applied
         await tenantDb.execute(sql`
-          INSERT INTO "_migrations" (filename) VALUES (${migrationFile})
+          INSERT INTO ${sql.raw(`"${tenant.schemaName}"."_migrations"`)} (filename) VALUES (${migrationFile})
         `);
       }
 

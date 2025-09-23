@@ -19,8 +19,8 @@ export default async function DashboardPage({
   if (!tenant) return null;
 
   const tenantDb = getTenantDb(tenant.schemaName);
-  const users = createUsersTable();
-  const projects = createProjectsTable();
+  const users = createUsersTable(tenant.schemaName);
+  const projects = createProjectsTable(tenant.schemaName);
 
   // Obtener usuario actual
   const [currentUser] = await tenantDb

@@ -54,7 +54,7 @@ export class TenantManager {
 
     // Create migrations tracking table if it doesn't exist
     await tenantDb.execute(`
-      CREATE TABLE IF NOT EXISTS "_migrations" (
+      CREATE TABLE IF NOT EXISTS "${schemaName}"."_migrations" (
         id SERIAL PRIMARY KEY,
         filename VARCHAR(255) NOT NULL UNIQUE,
         applied_at TIMESTAMP DEFAULT NOW()
@@ -63,7 +63,7 @@ export class TenantManager {
 
     // Get already applied migrations
     const appliedMigrations = await tenantDb.execute(`
-      SELECT filename FROM "_migrations"
+      SELECT filename FROM "${schemaName}"."_migrations"
     `);
     const appliedSet = new Set(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -90,7 +90,7 @@ export class TenantManager {
 
       // Record that this migration has been applied
       await tenantDb.execute(sql`
-        INSERT INTO "_migrations" (filename) VALUES (${migrationFile})
+        INSERT INTO ${sql.raw(`"${schemaName}"."_migrations"`)} (filename) VALUES (${migrationFile})
       `);
     }
 

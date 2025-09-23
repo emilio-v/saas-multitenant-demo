@@ -27,7 +27,7 @@ export async function POST(
     }
 
     const tenantDb = getTenantDb(tenant.schemaName);
-    const users = createUsersTable();
+    const users = createUsersTable(tenant.schemaName);
 
     // Update user metadata to mark onboarding as complete
     await tenantDb

@@ -1,4 +1,4 @@
-CREATE TABLE "users" (
+CREATE TABLE "$TENANT_SCHEMA$"."users" (
 	"id" varchar(255) PRIMARY KEY NOT NULL,
 	"email" varchar(255) NOT NULL,
 	"first_name" varchar(255),
@@ -14,7 +14,7 @@ CREATE TABLE "users" (
 	CONSTRAINT "users_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
-CREATE TABLE "projects" (
+CREATE TABLE "$TENANT_SCHEMA$"."projects" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"slug" varchar(255) NOT NULL,
@@ -27,4 +27,4 @@ CREATE TABLE "projects" (
 	CONSTRAINT "projects_slug_unique" UNIQUE("slug")
 );
 --> statement-breakpoint
-ALTER TABLE "projects" ADD CONSTRAINT "projects_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE no action ON UPDATE no action;
+ALTER TABLE "$TENANT_SCHEMA$"."projects" ADD CONSTRAINT "projects_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "$TENANT_SCHEMA$"."users"("id") ON DELETE no action ON UPDATE no action;

@@ -210,6 +210,31 @@ export function getTenantDb(schemaName: string) {
 }
 ```
 
+### Database Provider Compatibility
+
+The application is designed to work consistently across PostgreSQL providers through schema-aware operations:
+
+**Supported Providers:**
+- Docker PostgreSQL 12+
+- Supabase (Managed PostgreSQL) 
+- AWS RDS PostgreSQL
+- Google Cloud SQL PostgreSQL
+- Azure Database for PostgreSQL
+- Any PostgreSQL instance with schema support
+
+**Cross-Provider Compatibility Features:**
+- Schema-aware table factory functions with explicit schema parameters
+- Migration placeholders (`$TENANT_SCHEMA$`) for provider-agnostic SQL
+- Connection pooling optimized for different provider characteristics
+- Explicit schema references in all database operations
+
+**Key Implementation Pattern:**
+```typescript
+// Schema-aware table creation ensures compatibility
+const users = createUsersTable(tenant.schemaName); // ✅ Provider agnostic
+const users = createUsersTable(); // ❌ May not work on all providers
+```
+
 ## Authentication & Authorization
 
 ### Clerk Integration Architecture
@@ -353,7 +378,11 @@ const usersTableSchema = {
 export const users = tenantSchema.table("users", usersTableSchema);
 
 // Factory function for runtime tenant creation  
-export const createUsersTable = () => {
+export const createUsersTable = (schemaName?: string) => {
+  if (schemaName) {
+    const schema = pgSchema(schemaName);
+    return schema.table("users", usersTableSchema);
+  }
   return pgTable("users", usersTableSchema);
 };
 ```
@@ -392,9 +421,9 @@ async function DashboardPage({ params }: { params: { tenant: string } }) {
   // 2. Get tenant-specific database connection
   const tenantDb = getTenantDb(tenant.schemaName);
   
-  // 3. Create table references for tenant
-  const users = createUsersTable();
-  const projects = createProjectsTable();
+  // 3. Create schema-aware table references for tenant
+  const users = createUsersTable(tenant.schemaName);
+  const projects = createProjectsTable(tenant.schemaName);
   
   // 4. Query tenant-specific data (isolated)
   const [currentUser] = await tenantDb
@@ -492,7 +521,7 @@ export async function POST(req: Request, { params }: { params: { slug: string } 
 
   // 3. Permission check (if needed)
   const tenantDb = getTenantDb(tenant.schemaName);
-  const users = createUsersTable();
+  const users = createUsersTable(tenant.schemaName);
   const [currentUser] = await tenantDb
     .select()
     .from(users)

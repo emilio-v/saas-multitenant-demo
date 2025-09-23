@@ -227,6 +227,19 @@ export default function RootLayout({
 
 ## Database Configuration
 
+The application is designed to work with any PostgreSQL-compatible database through schema-aware operations and explicit schema references.
+
+**Supported Database Providers:**
+- Docker PostgreSQL 12+
+- Supabase (Managed PostgreSQL)
+- AWS RDS PostgreSQL
+- Google Cloud SQL PostgreSQL
+- Azure Database for PostgreSQL
+- Any PostgreSQL instance with schema support
+
+**Cross-Provider Compatibility:**
+All database operations use explicit schema references and schema-aware table factory functions to ensure consistent behavior across different PostgreSQL providers.
+
 ### 1. Database Schema Design
 
 ```typescript
@@ -279,7 +292,11 @@ const usersTableSchema = {
 export const users = tenantSchema.table("users", usersTableSchema);
 
 // Factory function for runtime tenant creation
-export const createUsersTable = () => {
+export const createUsersTable = (schemaName?: string) => {
+  if (schemaName) {
+    const schema = pgSchema(schemaName);
+    return schema.table("users", usersTableSchema);
+  }
   return pgTable("users", usersTableSchema);
 };
 ```
@@ -752,7 +769,7 @@ export async function POST(req: Request) {
 
       // Create the owner user in the tenant schema
       const tenantDb = getTenantDb(result.schemaName);
-      const users = createUsersTable();
+      const users = createUsersTable(result.schemaName);
 
       await tenantDb.insert(users).values({
         id: user.id,
@@ -913,8 +930,8 @@ export default async function DashboardPage({
   if (!tenant) return null;
 
   const tenantDb = getTenantDb(tenant.schemaName);
-  const users = createUsersTable();
-  const projects = createProjectsTable();
+  const users = createUsersTable(tenant.schemaName);
+  const projects = createProjectsTable(tenant.schemaName);
 
   // Get current user
   const [currentUser] = await tenantDb
@@ -1018,7 +1035,7 @@ export async function POST(
     }
 
     const tenantDb = getTenantDb(tenant.schemaName);
-    const users = createUsersTable();
+    const users = createUsersTable(tenant.schemaName);
 
     // Update user metadata to mark onboarding as complete
     await tenantDb
