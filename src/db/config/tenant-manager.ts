@@ -66,6 +66,7 @@ export class TenantManager {
       SELECT filename FROM "_migrations"
     `);
     const appliedSet = new Set(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       appliedMigrations.map((row: any) => row.filename)
     );
 

@@ -54,6 +54,7 @@ async function migrateTenants() {
         ) as users_exists
       `);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const hasExistingTables = (tablesExist[0] as any).users_exists;
 
       // Get already applied migrations
@@ -61,6 +62,7 @@ async function migrateTenants() {
         SELECT filename FROM "_migrations"
       `);
       const appliedSet = new Set(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         appliedMigrations.map((row: any) => row.filename)
       );
 
