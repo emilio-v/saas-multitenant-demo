@@ -17,13 +17,14 @@ This project uses bun as the package manager (indicated by `bun.lock` file).
 
 ## Project Overview
 
-This is a **multi-tenant SaaS dashboard demo** that demonstrates:
+This is a **production-ready multi-tenant SaaS application** that demonstrates:
 
-- Multi-tenant architecture using PostgreSQL schemas per tenant
+- Advanced multi-tenant architecture using PostgreSQL schema-per-tenant isolation
+- Webhook-based automatic tenant provisioning via Clerk Organizations
+- Sophisticated migration system with tracking and rollback capabilities
 - Subdomain-based tenant routing (e.g., `acme.localhost:3000`)
-- User authentication with Clerk Organizations
-- Role-based permissions (owner, admin, member, viewer)
-- Tenant isolation with separate database schemas
+- Role-based permissions system (owner, admin, member, viewer)
+- Complete data isolation between tenants with security best practices
 
 ## Architecture
 
@@ -55,11 +56,13 @@ This is a Next.js 15.5.3 application using the App Router architecture with:
 
 ### Key Features
 
-- **Multi-tenant Architecture**: Each tenant gets its own PostgreSQL schema
+- **Advanced Multi-tenant Architecture**: Each tenant gets its own PostgreSQL schema with complete isolation
+- **Webhook Integration**: Automatic tenant creation via Clerk organization webhooks
+- **Migration System**: Sophisticated database migrations with tracking, rollbacks, and tenant-specific applications
 - **Subdomain Routing**: Tenants access via `tenant-name.localhost:3000`
-- **Authentication Flow**: Sign-up → Onboarding → Organization Creation → Tenant Setup
-- **Role System**: owner, admin, member, viewer with granular permissions
-- **Database Isolation**: Complete data separation between tenants
+- **Authentication Flow**: Sign-up → Organization Creation (webhook) → Automatic Tenant Setup → Dashboard Access
+- **Role System**: owner, admin, member, viewer with granular permissions and database-level enforcement
+- **Security**: Parameterized queries, input validation, role-based access control, and tenant isolation
 
 ### Configuration
 
@@ -68,7 +71,12 @@ This is a Next.js 15.5.3 application using the App Router architecture with:
 - Custom CSS properties for theming with dark mode support
 - Turbopack enabled for faster builds and development
 
-Refer to `docs/complete-multitenant-guide.md` for detailed implementation steps and architecture explanation.
+### Documentation Structure
+
+- **`docs/comprehensive-multitenant-guide.md`** - Complete setup and implementation guide
+- **`docs/technical-architecture.md`** - Technical deep dive and system architecture  
+- **`docs/migration-workflow.md`** - Database migration and schema change processes
+- **`docs/environment-setup.md`** - Environment configuration and Clerk setup
 
 ## Development Rules
 
@@ -78,6 +86,16 @@ Refer to `docs/complete-multitenant-guide.md` for detailed implementation steps 
 
 3. **Follow DRY Principles**: Avoid code repetition and follow Don't Repeat Yourself guidelines throughout the implementation.
 
-4. **Reference Guide First**: Before starting any task, always look up the related topic in `docs/complete-multitenant-guide.md` to get proper context on what will be worked on.
+4. **Reference Documentation First**: Before starting any task, always reference the appropriate documentation:
+   - For setup issues: `docs/environment-setup.md`
+   - For architecture questions: `docs/technical-architecture.md`
+   - For schema changes: `docs/migration-workflow.md`
+   - For implementation guidance: `docs/comprehensive-multitenant-guide.md`
 
-5. **Server Components First**: Use Server Components pattern as the default. Pages should be server components to enable server-side queries, fetches, and redirects. Only use Client Components when interactivity is required. Follow component folder structure: `/components/[domain]/[component-name]/component-name.tsx` with barrel exports via `index.ts`.
+5. **Migration System**: When making schema changes, always follow the migration workflow:
+   - Modify schema files in `src/db/schemas/`
+   - Generate migrations with `bun run db:generate:tenant`
+   - Replace `"tenant"` with `$TENANT_SCHEMA$` in generated files
+   - Test with existing tenants using `bun run db:migrate:tenants`
+
+6. **Server Components First**: Use Server Components pattern as the default. Pages should be server components to enable server-side queries, fetches, and redirects. Only use Client Components when interactivity is required. Follow component folder structure: `/components/[domain]/[component-name]/component-name.tsx` with barrel exports via `index.ts`.

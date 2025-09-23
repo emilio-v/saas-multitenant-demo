@@ -5,6 +5,7 @@ import { join } from "path";
 import { db } from "../db/config/database";
 import { TenantManager } from "../db/config/tenant-manager";
 import { getTenantDb } from "../db/config/database";
+import { sql } from "drizzle-orm";
 
 async function migrateTenants() {
   console.log("🚀 Starting tenant schema migrations...");
@@ -94,8 +95,8 @@ async function migrateTenants() {
         await tenantDb.execute(tenantSql);
 
         // Record that this migration has been applied
-        await tenantDb.execute(`
-          INSERT INTO "_migrations" (filename) VALUES ('${migrationFile}')
+        await tenantDb.execute(sql`
+          INSERT INTO "_migrations" (filename) VALUES (${migrationFile})
         `);
       }
 

@@ -1,23 +1,25 @@
 # Multi-Tenant SaaS Demo
 
-A production-ready multi-tenant SaaS application built with Next.js 15, demonstrating schema-per-tenant architecture with PostgreSQL, Clerk authentication, and advanced database management.
+A production-ready multi-tenant SaaS application built with Next.js 15, demonstrating schema-per-tenant architecture with PostgreSQL, Clerk authentication, and advanced migration system.
 
 ## 🏗️ Architecture Overview
 
-- **Multi-tenant Architecture**: Each tenant gets its own PostgreSQL schema
-- **Subdomain Routing**: Tenants access via `tenant-name.localhost:3000`
-- **Authentication Flow**: Sign-up → Onboarding → Organization Creation → Tenant Setup
+- **Multi-tenant Architecture**: Each tenant gets its own PostgreSQL schema with complete isolation
+- **Subdomain Routing**: Tenants access via `tenant-name.localhost:3000` 
+- **Webhook Integration**: Automatic tenant provisioning via Clerk webhooks
+- **Migration System**: Advanced database migrations with tracking and rollback support
 - **Role System**: owner, admin, member, viewer with granular permissions
 - **Database Isolation**: Complete data separation between tenants
 
 ## 🛠️ Tech Stack
 
-- **Framework**: Next.js 15 with App Router and Turbopack
-- **Authentication**: Clerk with Organizations support
-- **Database**: PostgreSQL with DrizzleORM (schema-per-tenant)
+- **Framework**: Next.js 15.5.3 with App Router and Turbopack
+- **Runtime**: Bun (fast JavaScript runtime and package manager)
+- **Authentication**: Clerk with Organizations and webhook support
+- **Database**: PostgreSQL 15 with DrizzleORM (schema-per-tenant)
 - **UI Components**: Shadcn/ui with Tailwind CSS v4
-- **TypeScript**: Strict configuration with path aliases
-- **Package Manager**: Bun
+- **TypeScript**: Strict configuration with path aliases (`@/*`)
+- **Build Tool**: Turbopack for development and production
 
 ## 📋 Prerequisites
 
@@ -35,46 +37,60 @@ cd saas-multitenant-demo
 bun install
 ```
 
-### 2. Environment Setup
+### 2. Database Setup
 
-Create `.env.local` file:
+Start PostgreSQL with Docker:
+
+```bash
+docker run --name saas_multitenant_demo \
+  -e POSTGRES_PASSWORD=password \
+  -e POSTGRES_USER=user \
+  -e POSTGRES_DB=saas_multitenant \
+  -p 5432:5432 \
+  -d postgres:15-alpine
+```
+
+### 3. Environment Setup
+
+Copy the environment template:
+
+```bash
+cp .env.example .env.local
+```
+
+Then update `.env.local` with your values:
 
 ```env
-# Database
-DATABASE_URL="postgresql://user:password@localhost:5432/multitenant_db"
+# Database (matches Docker setup above)
+DATABASE_URL="postgresql://user:password@localhost:5432/saas_multitenant"
 
-# Clerk Authentication
+# Clerk Authentication (get from Clerk Dashboard)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
 CLERK_SECRET_KEY="sk_test_..."
+CLERK_WEBHOOK_SECRET="whsec_..." # Required for automatic tenant creation
+
+# Clerk URLs (default configuration)
 NEXT_PUBLIC_CLERK_SIGN_IN_URL="/auth/sign-in"
 NEXT_PUBLIC_CLERK_SIGN_UP_URL="/auth/sign-up"
 NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL="/auth/onboarding"
 NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL="/auth/onboarding"
+
+# Application
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
-### 3. Database Setup
+### 4. Database Migration
 
-#### Option A: Fresh Start (Recommended)
+Apply database migrations:
+
 ```bash
-# If migrations don't exist, generate them first
-bun run db:generate:all
-
-# Apply existing migrations to database
+# Apply all migrations (creates tables and structure)
 bun run db:migrate:all
 ```
 
-**Note**: If migration files already exist in `src/db/migrations/`, skip the generate step and run `bun run db:migrate:all` directly.
+> **Note**: Migration files are already included. The system uses an advanced migration tracking system that prevents duplicate applications and supports rollbacks.
 
-#### Option B: Complete Reset (if needed)
-```bash
-# Reset everything and apply fresh migrations
-bun run db:reset
-
-# OR nuclear option - completely empty database
-bun run db:empty
-```
-
-### 4. Development
+### 5. Development
 
 ```bash
 # Start development server
@@ -83,28 +99,34 @@ bun run dev
 
 Visit `http://localhost:3000` to see the application.
 
-## 🗃️ Database Scripts
+## 🗃️ Database Management
 
-### Migration Management
+### Migration Commands
+- `bun run db:migrate:all` - Apply all migrations (recommended for setup)
+- `bun run db:migrate:public` - Apply public schema migrations only
+- `bun run db:migrate:tenants` - Apply tenant migrations to existing tenants
+
+### Schema Change Workflow
+- `bun run db:generate:tenant` - Generate new migration after schema changes
 - `bun run db:generate:public` - Generate public schema migrations
-- `bun run db:generate:tenant` - Generate tenant schema migrations
-- `bun run db:generate:all` - Generate all migrations
-- `bun run db:migrate:public` - Apply public migrations
-- `bun run db:migrate:tenants` - Apply tenant migrations to all tenants
-- `bun run db:migrate:all` - Apply all migrations
+- `bun run db:generate:all` - Generate all migration types
 
-### Database Reset Options
-- `bun run db:reset` - Complete reset with fresh migrations (recommended)
-- `bun run db:empty` - Nuclear option - completely empty database
+### Database Reset (Development Only)
+- `bun run db:reset` - Complete reset with fresh migrations
+- `bun run db:empty` - Empty database completely
+
+> **📚 For detailed migration workflows**, see `docs/migration-workflow.md`
 
 ## 🏢 Multi-Tenant Flow
 
-### 1. User Registration
+### 1. User Registration (Automated via Webhooks)
 1. User signs up via Clerk
-2. Redirected to onboarding
-3. User creates organization
-4. System creates tenant schema
-5. User added to tenant with owner role
+2. User creates organization in onboarding flow
+3. **Webhook triggers automatic tenant creation**:
+   - Creates `tenant_xxx` PostgreSQL schema
+   - Applies all migrations to new tenant
+   - Creates owner user in tenant database
+4. User redirected to tenant dashboard
 
 ### 2. Tenant Access
 - **URL Format**: `http://tenant-slug.localhost:3000`
@@ -113,13 +135,20 @@ Visit `http://localhost:3000` to see the application.
 
 ### 3. Data Structure
 ```
-public schema:
-├── tenants (tenant metadata)
-
-tenant_xxx schema:
-├── users (tenant-specific users)
-├── projects (tenant-specific projects)
-└── ... (other tenant data)
+saas_multitenant database:
+│
+├── public schema:
+│   └── tenants (tenant registry and metadata)
+│
+├── tenant_acme schema:
+│   ├── users (tenant-specific users)
+│   ├── projects (tenant-specific projects)
+│   └── _migrations (migration tracking)
+│
+└── tenant_testcorp schema:
+    ├── users (tenant-specific users)
+    ├── projects (tenant-specific projects)  
+    └── _migrations (migration tracking)
 ```
 
 ## 📁 Project Structure
@@ -184,9 +213,11 @@ Configure your DNS and reverse proxy to handle subdomain routing for tenants.
 
 ## 📚 Documentation
 
-- `docs/complete-multitenant-guide.md` - Comprehensive implementation guide
-- `docs/implementation-tasks.md` - Development roadmap and tasks
-- `CLAUDE.md` - Development guidelines and rules
+- **`docs/comprehensive-multitenant-guide.md`** - Complete setup and implementation guide
+- **`docs/technical-architecture.md`** - Technical deep dive and system architecture
+- **`docs/migration-workflow.md`** - Database migration and schema change workflow
+- **`docs/environment-setup.md`** - Environment configuration and Clerk setup
+- **`CLAUDE.md`** - Development guidelines and AI assistant rules
 
 ## 🧪 Development Guidelines
 

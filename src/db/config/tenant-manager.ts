@@ -1,6 +1,6 @@
 import { db, getTenantDb } from "./database";
 import { tenants } from "../schemas/public/tenants";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
 
@@ -88,8 +88,8 @@ export class TenantManager {
       await tenantDb.execute(tenantSql);
 
       // Record that this migration has been applied
-      await tenantDb.execute(`
-        INSERT INTO "_migrations" (filename) VALUES ('${migrationFile}')
+      await tenantDb.execute(sql`
+        INSERT INTO "_migrations" (filename) VALUES (${migrationFile})
       `);
     }
 
