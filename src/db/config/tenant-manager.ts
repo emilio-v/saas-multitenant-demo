@@ -1,6 +1,8 @@
 import { db, getTenantDb } from "./database";
 import { tenants } from "../schemas/public/tenants";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+import { readdirSync, readFileSync } from "fs";
+import { join } from "path";
 
 export class TenantManager {
   static async createTenant(clerkOrgId: string, name: string, slug: string) {
@@ -25,7 +27,7 @@ export class TenantManager {
       });
 
       await db.execute(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
-      await this.createTenantTables(schemaName);
+      await this.applyTenantMigrations(schemaName);
 
       return { success: true, schemaName };
     } catch (error) {
@@ -38,40 +40,60 @@ export class TenantManager {
     }
   }
 
-  private static async createTenantTables(schemaName: string) {
-    const sql = `
-      CREATE TABLE IF NOT EXISTS "${schemaName}"."users" (
-        id VARCHAR(255) PRIMARY KEY,
-        email VARCHAR(255) UNIQUE NOT NULL,
-        first_name VARCHAR(255),
-        last_name VARCHAR(255),
-        avatar_url VARCHAR(500),
-        role VARCHAR(50) DEFAULT 'member' NOT NULL,
-        is_active BOOLEAN DEFAULT true,
-        last_seen_at TIMESTAMP,
-        joined_at TIMESTAMP DEFAULT NOW() NOT NULL,
-        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
-        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
-      );
-      
-      CREATE TABLE IF NOT EXISTS "${schemaName}"."projects" (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        slug VARCHAR(255) UNIQUE NOT NULL,
-        description TEXT,
-        created_by VARCHAR(255) NOT NULL REFERENCES "${schemaName}"."users"(id),
-        is_public BOOLEAN DEFAULT false,
-        status VARCHAR(50) DEFAULT 'active' NOT NULL,
-        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
-        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
-      );
-      
-      CREATE INDEX idx_${schemaName}_projects_created_by ON "${schemaName}"."projects"(created_by);
-      CREATE INDEX idx_${schemaName}_projects_status ON "${schemaName}"."projects"(status);
-      CREATE INDEX idx_${schemaName}_users_role ON "${schemaName}"."users"(role);
-    `;
+  private static async applyTenantMigrations(schemaName: string) {
+    console.log(`📝 Applying migrations to tenant: ${schemaName}`);
 
-    await db.execute(sql);
+    // Get all migration files for tenants
+    const migrationsPath = "./src/db/migrations/tenant";
+    const migrationFiles = readdirSync(migrationsPath)
+      .filter((file) => file.endsWith(".sql"))
+      .sort(); // Apply migrations in order
+
+    // Get tenant-specific database connection with correct search_path
+    const tenantDb = getTenantDb(schemaName);
+
+    // Create migrations tracking table if it doesn't exist
+    await tenantDb.execute(`
+      CREATE TABLE IF NOT EXISTS "_migrations" (
+        id SERIAL PRIMARY KEY,
+        filename VARCHAR(255) NOT NULL UNIQUE,
+        applied_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    // Get already applied migrations
+    const appliedMigrations = await tenantDb.execute(`
+      SELECT filename FROM "_migrations"
+    `);
+    const appliedSet = new Set(
+      appliedMigrations.map((row: any) => row.filename)
+    );
+
+    // Apply each migration to the tenant schema
+    for (const migrationFile of migrationFiles) {
+      if (appliedSet.has(migrationFile)) {
+        console.log(`  ⏭️  Skipping ${migrationFile} (already applied)`);
+        continue;
+      }
+
+      console.log(`  🔄 Applying ${migrationFile}...`);
+
+      const migrationPath = join(migrationsPath, migrationFile);
+      const migrationSql = readFileSync(migrationPath, "utf8");
+
+      // Replace schema placeholders with actual tenant schema name
+      const tenantSql = migrationSql.replace(/\$TENANT_SCHEMA\$/g, schemaName);
+
+      // Execute migration with tenant-specific connection
+      await tenantDb.execute(tenantSql);
+
+      // Record that this migration has been applied
+      await tenantDb.execute(sql`
+        INSERT INTO "_migrations" (filename) VALUES (${migrationFile})
+      `);
+    }
+
+    console.log(`  ✅ All migrations applied to ${schemaName}`);
   }
 
   static async getTenantBySlug(slug: string) {
@@ -102,6 +124,10 @@ export class TenantManager {
       .limit(1);
 
     return tenant;
+  }
+
+  static async getAllTenants() {
+    return await db.select().from(tenants);
   }
 
   private static async dropTenant(schemaName: string) {

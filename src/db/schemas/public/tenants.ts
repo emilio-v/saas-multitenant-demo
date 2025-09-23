@@ -7,5 +7,5 @@ export const tenants = pgTable("tenants", {
   schemaName: varchar("schema_name", { length: 63 }).unique().notNull(),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
 });

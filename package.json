@@ -7,7 +7,14 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "db:reset": "bun run scripts/reset-db.ts"
+    "db:reset": "bun run src/scripts/reset-db.ts",
+    "db:empty": "bun run src/scripts/db-empty.ts",
+    "db:generate:public": "drizzle-kit generate --config=drizzle.config.public.ts",
+    "db:generate:tenant": "drizzle-kit generate --config=drizzle.config.tenant.ts",
+    "db:generate:all": "bun run db:generate:public && bun run db:generate:tenant",
+    "db:migrate:public": "bun run src/scripts/migrate-public.ts",
+    "db:migrate:tenants": "bun run src/scripts/migrate-tenants.ts",
+    "db:migrate:all": "bun run src/scripts/migrate-all.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.32.0",
@@ -21,6 +28,7 @@
     "postgres": "^3.4.7",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "svix": "^1.76.1",
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
