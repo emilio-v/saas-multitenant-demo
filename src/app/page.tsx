@@ -38,6 +38,7 @@ export default function Home() {
             <li>Role-based permissions system</li>
             <li>Webhook-driven tenant provisioning</li>
             <li>Advanced migration system</li>
+            <li><s>Next Feature: Subdomain-based tenant routing</s></li>
           </ul>
         </div>
       </main>
