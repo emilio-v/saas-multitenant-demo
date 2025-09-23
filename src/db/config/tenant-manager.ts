@@ -65,14 +65,39 @@ export class TenantManager {
   private static async applyTenantMigrations(schemaName: string) {
     console.log(`📝 Applying migrations to tenant: ${schemaName}`);
 
-    // Get all migration files for tenants
-    const migrationsPath = "./src/db/migrations/tenant";
-    const migrationFiles = readdirSync(migrationsPath)
-      .filter((file) => file.endsWith(".sql"))
-      .sort(); // Apply migrations in order
+    try {
+      // Get all migration files for tenants
+      const migrationsPath = join(process.cwd(), "src/db/migrations/tenant");
+      console.log(`🔍 Looking for migrations in: ${migrationsPath}`);
+      console.log(`🔍 Current working directory: ${process.cwd()}`);
+      
+      // Check if directory exists and get migration files
+      let migrationFiles: string[];
+      try {
+        migrationFiles = readdirSync(migrationsPath)
+          .filter((file) => file.endsWith(".sql"))
+          .sort(); // Apply migrations in order
+        
+        console.log(`📁 Found ${migrationFiles.length} migration files:`, migrationFiles);
+      } catch (dirError) {
+        console.error(`❌ Cannot access migrations directory:`, dirError);
+        try {
+          console.log(`🔍 Contents of src/db/migrations:`, 
+            readdirSync(join(process.cwd(), "src/db/migrations")));
+        } catch {
+          console.log(`🔍 src/db/migrations directory not found`);
+        }
+        
+        try {
+          console.log(`🔍 Project root contents:`, readdirSync(process.cwd()));
+        } catch {
+          console.log(`🔍 Cannot read project root`);
+        }
+        throw new Error(`Migration directory not accessible: ${migrationsPath}`);
+      }
 
-    // Get tenant-specific database connection with correct search_path
-    const tenantDb = getTenantDb(schemaName);
+      // Get tenant-specific database connection with correct search_path
+      const tenantDb = getTenantDb(schemaName);
 
     // Create migrations tracking table if it doesn't exist
     await tenantDb.execute(`
@@ -101,14 +126,24 @@ export class TenantManager {
 
       console.log(`  🔄 Applying ${migrationFile}...`);
 
-      const migrationPath = join(migrationsPath, migrationFile);
-      const migrationSql = readFileSync(migrationPath, "utf8");
+      try {
+        const migrationPath = join(migrationsPath, migrationFile);
+        console.log(`    📄 Reading migration from: ${migrationPath}`);
+        
+        const migrationSql = readFileSync(migrationPath, "utf8");
+        console.log(`    📝 Migration SQL length: ${migrationSql.length} characters`);
 
-      // Replace schema placeholders with actual tenant schema name
-      const tenantSql = migrationSql.replace(/\$TENANT_SCHEMA\$/g, schemaName);
+        // Replace schema placeholders with actual tenant schema name
+        const tenantSql = migrationSql.replace(/\$TENANT_SCHEMA\$/g, schemaName);
+        console.log(`    🔄 Executing migration for schema: ${schemaName}`);
 
-      // Execute migration with tenant-specific connection
-      await tenantDb.execute(tenantSql);
+        // Execute migration with tenant-specific connection
+        await tenantDb.execute(tenantSql);
+        console.log(`    ✅ Migration ${migrationFile} executed successfully`);
+      } catch (migrationError) {
+        console.error(`    ❌ Failed to apply migration ${migrationFile}:`, migrationError);
+        throw migrationError;
+      }
 
       // Record that this migration has been applied
       await tenantDb.execute(sql`
@@ -117,6 +152,17 @@ export class TenantManager {
     }
 
     console.log(`  ✅ All migrations applied to ${schemaName}`);
+    } catch (error) {
+      console.error(`❌ Failed to apply migrations to ${schemaName}:`, error);
+      if (error instanceof Error) {
+        console.error(`Migration error details:`, {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
+      }
+      throw error;
+    }
   }
 
   static async getTenantBySlug(slug: string) {
