@@ -4,6 +4,7 @@ import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
 import { db } from "../db/config/database";
 import { TenantManager } from "../db/config/tenant-manager";
+import { getTenantDb } from "../db/config/database";
 
 async function migrateTenants() {
   console.log("🚀 Starting tenant schema migrations...");
@@ -29,11 +30,56 @@ async function migrateTenants() {
     for (const tenant of tenants) {
       console.log(`🔄 Migrating tenant: ${tenant.name} (${tenant.schemaName})`);
 
+      // Get tenant-specific database connection
+      const tenantDb = getTenantDb(tenant.schemaName);
+
       // Create schema if it doesn't exist
       await db.execute(`CREATE SCHEMA IF NOT EXISTS "${tenant.schemaName}"`);
 
+      // Create migrations tracking table if it doesn't exist
+      await tenantDb.execute(`
+        CREATE TABLE IF NOT EXISTS "_migrations" (
+          id SERIAL PRIMARY KEY,
+          filename VARCHAR(255) NOT NULL UNIQUE,
+          applied_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+
+      // Check if tables already exist (for existing tenants)
+      const tablesExist = await tenantDb.execute(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_name = 'users'
+        ) as users_exists
+      `);
+
+      const hasExistingTables = (tablesExist[0] as any).users_exists;
+
+      // Get already applied migrations
+      const appliedMigrations = await tenantDb.execute(`
+        SELECT filename FROM "_migrations"
+      `);
+      const appliedSet = new Set(
+        appliedMigrations.map((row: any) => row.filename)
+      );
+
+      // If tables exist but no migration records, mark initial migration as applied
+      if (hasExistingTables && appliedSet.size === 0) {
+        console.log(`  📋 Marking existing tables as migrated...`);
+        await tenantDb.execute(`
+          INSERT INTO "_migrations" (filename) VALUES ('0000_steep_hedge_knight.sql')
+          ON CONFLICT (filename) DO NOTHING
+        `);
+        appliedSet.add("0000_steep_hedge_knight.sql");
+      }
+
       // Apply each migration to the tenant schema
       for (const migrationFile of migrationFiles) {
+        if (appliedSet.has(migrationFile)) {
+          console.log(`  ⏭️  Skipping ${migrationFile} (already applied)`);
+          continue;
+        }
+
         console.log(`  📝 Applying ${migrationFile}...`);
 
         const migrationPath = join(migrationsPath, migrationFile);
@@ -45,7 +91,12 @@ async function migrateTenants() {
           tenant.schemaName
         );
 
-        await db.execute(tenantSql);
+        await tenantDb.execute(tenantSql);
+
+        // Record that this migration has been applied
+        await tenantDb.execute(`
+          INSERT INTO "_migrations" (filename) VALUES ('${migrationFile}')
+        `);
       }
 
       console.log(`  ✅ ${tenant.name} migration completed`);

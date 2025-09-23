@@ -1,8 +1,8 @@
 import { db, getTenantDb } from "./database";
 import { tenants } from "../schemas/public/tenants";
 import { eq } from "drizzle-orm";
-import { readdirSync, readFileSync } from 'fs';
-import { join } from 'path';
+import { readdirSync, readFileSync } from "fs";
+import { join } from "path";
 
 export class TenantManager {
   static async createTenant(clerkOrgId: string, name: string, slug: string) {
@@ -42,27 +42,57 @@ export class TenantManager {
 
   private static async applyTenantMigrations(schemaName: string) {
     console.log(`📝 Applying migrations to tenant: ${schemaName}`);
-    
+
     // Get all migration files for tenants
-    const migrationsPath = './src/db/migrations/tenant';
+    const migrationsPath = "./src/db/migrations/tenant";
     const migrationFiles = readdirSync(migrationsPath)
-      .filter(file => file.endsWith('.sql'))
+      .filter((file) => file.endsWith(".sql"))
       .sort(); // Apply migrations in order
-    
+
     // Get tenant-specific database connection with correct search_path
     const tenantDb = getTenantDb(schemaName);
-    
+
+    // Create migrations tracking table if it doesn't exist
+    await tenantDb.execute(`
+      CREATE TABLE IF NOT EXISTS "_migrations" (
+        id SERIAL PRIMARY KEY,
+        filename VARCHAR(255) NOT NULL UNIQUE,
+        applied_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    // Get already applied migrations
+    const appliedMigrations = await tenantDb.execute(`
+      SELECT filename FROM "_migrations"
+    `);
+    const appliedSet = new Set(
+      appliedMigrations.map((row: any) => row.filename)
+    );
+
     // Apply each migration to the tenant schema
     for (const migrationFile of migrationFiles) {
+      if (appliedSet.has(migrationFile)) {
+        console.log(`  ⏭️  Skipping ${migrationFile} (already applied)`);
+        continue;
+      }
+
       console.log(`  🔄 Applying ${migrationFile}...`);
-      
+
       const migrationPath = join(migrationsPath, migrationFile);
-      const migrationSql = readFileSync(migrationPath, 'utf8');
-      
+      const migrationSql = readFileSync(migrationPath, "utf8");
+
+      // Replace schema placeholders with actual tenant schema name
+      const tenantSql = migrationSql.replace(/\$TENANT_SCHEMA\$/g, schemaName);
+
       // Execute migration with tenant-specific connection
-      await tenantDb.execute(migrationSql);
+      await tenantDb.execute(tenantSql);
+
+      // Record that this migration has been applied
+      await tenantDb.execute(`
+        INSERT INTO "_migrations" (filename) VALUES ('${migrationFile}')
+      `);
     }
-    
+
     console.log(`  ✅ All migrations applied to ${schemaName}`);
   }
 

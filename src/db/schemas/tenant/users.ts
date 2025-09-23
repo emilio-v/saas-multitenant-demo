@@ -1,4 +1,11 @@
-import { pgTable, pgSchema, varchar, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  pgSchema,
+  varchar,
+  timestamp,
+  boolean,
+  jsonb,
+} from "drizzle-orm/pg-core";
 
 // Create a tenant schema for migration generation (using generic "tenant" schema)
 export const tenantSchema = pgSchema("tenant");
@@ -10,6 +17,7 @@ const usersTableSchema = {
   firstName: varchar("first_name", { length: 255 }),
   lastName: varchar("last_name", { length: 255 }),
   avatarUrl: varchar("avatar_url", { length: 500 }),
+  phone: varchar("phone", { length: 50 }),
   role: varchar("role", { length: 50 }).default("member").notNull(),
   metadata: jsonb("metadata").default("{}").notNull(),
   isActive: boolean("is_active").default(true),
