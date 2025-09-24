@@ -392,17 +392,20 @@ export const createUsersTable = (schemaName?: string) => {
 ### Tenant Resolution Flow
 
 ```
-1. Request arrives: https://acme.localhost:3000/dashboard
+1. Request arrives: https://localhost:3000/acme/dashboard
                               │
 2. Clerk Middleware (middleware.ts)
    ├── Authenticates user
-   ├── Extracts subdomain: "acme"
-   ├── Validates tenant exists in public.tenants
-   ├── Checks user belongs to tenant
-   └── Sets tenant context headers
+   └── Proceeds to next handler
                               │
-3. Server Component (dashboard/page.tsx)  
-   ├── Reads tenant headers
+3. Dynamic Route Handler ([tenant]/layout.tsx)
+   ├── Extracts tenant from path: "acme"
+   ├── Validates tenant exists in public.tenants
+   ├── Checks user belongs to tenant org
+   └── Sets up tenant context
+                              │
+4. Server Component (dashboard/page.tsx)  
+   ├── Gets tenant from path params
    ├── Gets tenant database connection
    ├── Queries tenant-specific data
    └── Renders with tenant context

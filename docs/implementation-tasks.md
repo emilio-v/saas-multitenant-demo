@@ -79,7 +79,7 @@ This document outlines the complete implementation roadmap for building a produc
 ## Phase 3: Enhanced Middleware & Security 🛡️
 
 ### 3.1: Advanced Middleware
-- [ ] Implement subdomain-based tenant resolution
+- [ ] Implement enhanced path-based tenant validation
 - [ ] Add tenant existence verification in middleware  
 - [ ] Implement user-tenant relationship validation
 - [ ] Add rate limiting per tenant
@@ -191,7 +191,7 @@ This document outlines the complete implementation roadmap for building a produc
 - [ ] Create capacity planning tools
 
 ### 8.2: Advanced Tenant Features
-- [ ] Implement tenant-specific subdomain SSL
+- [ ] Migrate to subdomain or header-based routing (see routing-migration-options.md)
 - [ ] Add custom domain support per tenant
 - [ ] Create tenant white-labeling options
 - [ ] Build tenant marketplace/app system

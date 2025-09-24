@@ -22,7 +22,7 @@ This is a **production-ready multi-tenant SaaS application** that demonstrates:
 - Advanced multi-tenant architecture using PostgreSQL schema-per-tenant isolation
 - Webhook-based automatic tenant provisioning via Clerk Organizations
 - Sophisticated migration system with tracking and rollback capabilities
-- Subdomain-based tenant routing (e.g., `acme.localhost:3000`)
+- Path-based tenant routing (e.g., `localhost:3000/acme/dashboard`)
 - Role-based permissions system (owner, admin, member, viewer)
 - Complete data isolation between tenants with security best practices
 

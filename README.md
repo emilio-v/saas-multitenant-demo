@@ -5,7 +5,7 @@ A production-ready multi-tenant SaaS application built with Next.js 15, demonstr
 ## 🏗️ Architecture Overview
 
 - **Multi-tenant Architecture**: Each tenant gets its own PostgreSQL schema with complete isolation
-- **Subdomain Routing**: Tenants access via `tenant-name.localhost:3000` 
+- **Path-based Routing**: Tenants access via `/tenant-name/dashboard` 
 - **Webhook Integration**: Automatic tenant provisioning via Clerk webhooks
 - **Migration System**: Advanced database migrations with tracking and rollback support
 - **Role System**: owner, admin, member, viewer with granular permissions
@@ -141,7 +141,7 @@ Visit `http://localhost:3000` to see the application.
 4. User redirected to tenant dashboard
 
 ### 2. Tenant Access
-- **URL Format**: `http://tenant-slug.localhost:3000`
+- **URL Format**: `http://localhost:3000/tenant-slug/dashboard`
 - **Schema Isolation**: Each tenant has separate `tenant_xxx` schema
 - **Role-Based Access**: Different permissions per user role
 
@@ -220,8 +220,8 @@ Ensure all environment variables are set in your production environment.
 bun run db:migrate:all
 ```
 
-### Subdomain Setup
-Configure your DNS and reverse proxy to handle subdomain routing for tenants.
+### Routing Setup
+The application uses path-based routing. Future migration to subdomain or header-based routing is documented in `docs/routing-migration-options.md`.
 
 ## 📚 Documentation
 
@@ -256,7 +256,7 @@ psql $DATABASE_URL -c "\dn"  # List schemas
 - Ensure redirect URLs are correct
 
 ### Tenant Access Issues
-- Verify subdomain DNS configuration
+- Verify tenant slug in URL path
 - Check tenant exists in database
 - Confirm user has access to tenant
 
