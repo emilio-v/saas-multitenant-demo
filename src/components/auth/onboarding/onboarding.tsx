@@ -36,8 +36,8 @@ export function Onboarding() {
         throw new Error("Error completing onboarding");
       }
 
-      // Redirect to dashboard
-      router.push(`/${org.slug}/dashboard`);
+      // Redirect to header-based dashboard
+      router.push("/dashboard");
     } catch (error) {
       console.error("Error completing onboarding:", error);
       alert("Error completing onboarding. Please try again.");

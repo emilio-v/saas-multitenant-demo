@@ -1,6 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { TenantManager } from "@/db/config/tenant-manager";
 
 const isPublicRoute = createRouteMatcher([
   "/",
@@ -29,16 +28,11 @@ export default clerkMiddleware(async (auth, request) => {
         tenantId = orgSlug;
       }
       
-      if (tenantId) {
-        const tenant = await TenantManager.getTenantBySlug(tenantId);
-        if (tenant) {
-          // Verify user belongs to this tenant (security check)
-          if (orgSlug === tenantId) {
-            const response = NextResponse.next();
-            response.headers.set('x-current-tenant', tenantId);
-            return response;
-          }
-        }
+      if (tenantId && orgSlug === tenantId) {
+        // Set tenant header and let server components handle validation
+        const response = NextResponse.next();
+        response.headers.set('x-current-tenant', tenantId);
+        return response;
       }
       
       // If we reach here, tenant context is missing or invalid
