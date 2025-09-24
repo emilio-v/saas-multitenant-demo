@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { getTenantDb } from "@/db/config/database";
-import { requireCurrentTenantRecord } from "@/lib/tenant-context";
+import { requireCurrentTenantRecord } from "@/lib/tenant-utils";
 import { createUsersTable, createProjectsTable } from "@/db/schemas/tenant";
 import { eq, or } from "drizzle-orm";
 import { ProjectsList } from "@/components/projects/projects-list";

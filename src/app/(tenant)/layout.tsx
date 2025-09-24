@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { requireCurrentTenantRecord } from "@/lib/tenant-context";
+import { requireCurrentTenantRecord } from "@/lib/tenant-utils";
 import { UserButton } from "@clerk/nextjs";
 
 interface TenantLayoutProps {

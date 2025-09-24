@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getTenantDb } from "@/db/config/database";
-import { requireCurrentTenantRecord } from "@/lib/tenant-context";
+import { requireCurrentTenantRecord } from "@/lib/tenant-utils";
 import { createUsersTable, createProjectsTable } from "@/db/schemas/tenant";
 import { eq, sql } from "drizzle-orm";
 import { DashboardView } from "@/components/dashboard/dashboard-view";
