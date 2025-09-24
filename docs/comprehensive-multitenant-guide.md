@@ -464,7 +464,7 @@ export class TenantManager {
     console.log(`📝 Applying migrations to tenant: ${schemaName}`);
     
     // Get all migration files for tenants
-    const migrationsPath = "./src/db/migrations/tenant";
+    const migrationsPath = join(process.cwd(), "src/db/migrations/tenant");
     const migrationFiles = readdirSync(migrationsPath)
       .filter((file) => file.endsWith(".sql"))
       .sort(); // Apply migrations in order
@@ -572,6 +572,18 @@ The `TenantManager.createTenant()` method includes several robustness features f
 
 This ensures robust operation across different deployment scenarios, database providers (Docker PostgreSQL, Supabase), and Clerk webhook behavior.
 
+#### Serverless Deployment Considerations
+
+**File System Access in Vercel/Serverless**
+- Uses `process.cwd()` for absolute paths instead of relative paths (`./src/...`)
+- Ensures migration files are accessible in serverless runtime environments
+- Includes comprehensive error logging to debug deployment-specific issues
+
+**Migration File Deployment**
+- Migration files in `src/db/migrations/tenant/` must be included in deployment
+- Vercel automatically includes TypeScript source files in serverless functions
+- File paths are resolved at runtime based on the serverless function's working directory
+
 ### 2. Migration Scripts
 
 ```typescript
@@ -598,7 +610,7 @@ async function migrateTenants() {
     }
 
     // Get all migration files for tenants
-    const migrationsPath = "./src/db/migrations/tenant";
+    const migrationsPath = join(process.cwd(), "src/db/migrations/tenant");
     const migrationFiles = readdirSync(migrationsPath)
       .filter((file) => file.endsWith(".sql"))
       .sort(); // Apply migrations in order
