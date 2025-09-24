@@ -20,18 +20,10 @@ export default clerkMiddleware(async (auth, request) => {
     
     // For tenant-aware routes, handle automatic tenant detection
     if (isTenantRoute(request)) {
-      // First try explicit header
-      let tenantId = request.headers.get('x-tenant-id');
-      
-      // If no explicit header and user is authenticated, use their org slug
-      if (!tenantId && userId && orgSlug) {
-        tenantId = orgSlug;
-      }
-      
-      if (tenantId && orgSlug === tenantId) {
-        // Set tenant header and let server components handle validation
+      if (userId && orgSlug) {
+        // Set tenant header based on user's organization
         const response = NextResponse.next();
-        response.headers.set('x-current-tenant', tenantId);
+        response.headers.set('x-current-tenant', orgSlug);
         return response;
       }
       
