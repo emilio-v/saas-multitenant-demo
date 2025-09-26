@@ -17,7 +17,7 @@ interface NewProjectFormProps {
   tenant: string;
 }
 
-export function NewProjectForm({ tenant }: NewProjectFormProps) {
+export function NewProjectForm({ tenant: _tenant }: NewProjectFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -32,7 +32,7 @@ export function NewProjectForm({ tenant }: NewProjectFormProps) {
     setLoading(true);
 
     try {
-      const response = await fetch(`/api/tenants/${tenant}/projects`, {
+      const response = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

@@ -23,11 +23,11 @@ export function Onboarding() {
       return;
     }
 
-    const org = userMemberships.data[0].organization;
+    const _org = userMemberships.data[0].organization;
     
     try {
       // Complete onboarding by updating the metadata
-      const onboardingResponse = await fetch(`/api/tenants/${org.slug}/users/onboarding`, {
+      const onboardingResponse = await fetch("/api/users/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
