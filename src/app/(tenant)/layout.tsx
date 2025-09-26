@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { requireCurrentTenantRecord } from "@/lib/tenant-utils";
 import { UserButton } from "@clerk/nextjs";
+import Link from "next/link";
 
 interface TenantLayoutProps {
   children: React.ReactNode;
@@ -46,18 +47,18 @@ export default async function TenantLayout({
 
             <div className="flex items-center space-x-4">
               <nav className="flex space-x-4">
-                <a
+                <Link
                   href="/dashboard"
                   className="text-gray-700 hover:text-gray-900"
                 >
                   Dashboard
-                </a>
-                <a
+                </Link>
+                <Link
                   href="/projects"
                   className="text-gray-700 hover:text-gray-900"
                 >
                   Proyectos
-                </a>
+                </Link>
               </nav>
               <UserButton />
             </div>
