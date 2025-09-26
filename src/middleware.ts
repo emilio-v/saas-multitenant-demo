@@ -8,9 +8,32 @@ const isPublicRoute = createRouteMatcher([
   "/api/webhooks(.*)",
 ]);
 
+// Routes that require tenant context
+const isTenantRoute = createRouteMatcher([
+  "/dashboard(.*)",
+  "/projects(.*)",
+]);
+
 export default clerkMiddleware(async (auth, request) => {
   if (!isPublicRoute(request)) {
-    await auth.protect();
+    const { userId, orgSlug } = await auth.protect();
+    
+    // For tenant-aware routes, handle automatic tenant detection
+    if (isTenantRoute(request)) {
+      if (userId && orgSlug) {
+        // Set tenant header based on user's organization
+        const response = NextResponse.next();
+        response.headers.set('x-current-tenant', orgSlug);
+        return response;
+      }
+      
+      // If we reach here, tenant context is missing or invalid
+      // Redirect to onboarding to set up tenant context
+      return NextResponse.redirect(new URL('/auth/onboarding', request.url));
+    }
+    
+    // For other protected routes, just continue
+    return NextResponse.next();
   }
   
   return NextResponse.next();

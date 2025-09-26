@@ -37,7 +37,7 @@ This guide covers building a production-ready multi-tenant SaaS application with
 - ✅ Automated tenant provisioning via webhooks
 - ✅ Robust migration system with tracking
 - ✅ Role-based permissions (owner, admin, member, viewer)
-- ✅ Subdomain-based tenant routing
+- ✅ Header-based tenant routing
 - ✅ Type-safe database operations
 - ✅ Production-ready error handling
 
@@ -49,19 +49,20 @@ This guide covers building a production-ready multi-tenant SaaS application with
 └─────────────────────────────────────────────────────────────┘
 
 Client Layer:
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│   acme.app.com  │  │ testcorp.app.com│  │  demo.app.com   │
-└─────────────────┘  └─────────────────┘  └─────────────────┘
-         │                       │                       │
-         └───────────────────────┴───────────────────────┘
+            ┌─────────────────────────────────────────┐
+            │         localhost:3000/dashboard        │
+            │      localhost:3000/acme/dashboard      │
+            │    (Header: x-current-tenant: acme)     │
+            └─────────────────────────────────────────┘
                                  │
 Application Layer:
-                    ┌────────────┴────────────┐
-                    │   Next.js Application   │
-                    │  - Middleware (Tenant)  │
-                    │  - Clerk Auth           │
-                    │  - Webhook Handler      │
-                    └────────────┬────────────┘
+                    ┌────────────┴────────────────┐
+                    │     Next.js Application     │
+                    │  - Header-based routing     │
+                    │  - api-tenant-context.ts    │
+                    │  - Clerk Auth               │
+                    │  - Webhook Handler          │
+                    └────────────┬────────────────┘
                                  │
 Database Layer:
                     ┌────────────┴────────────┐
@@ -98,7 +99,7 @@ cd saas-multitenant-demo
 # Core dependencies
 bun add @clerk/nextjs drizzle-orm postgres svix
 
-# UI dependencies  
+# UI dependencies
 bun add @radix-ui/react-label @radix-ui/react-slot
 bun add class-variance-authority clsx lucide-react tailwind-merge
 
@@ -158,11 +159,13 @@ src/
 ### 1. Clerk Dashboard Configuration
 
 1. **Create Clerk Application**
+
    - Go to [clerk.com](https://clerk.com)
    - Create new application
    - Select "Email" as primary authentication
 
 2. **Enable Organizations**
+
    - Navigate to Organizations → Settings
    - ✅ Enable organizations
    - ✅ Limit members to 1 organization
@@ -201,19 +204,19 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 ```tsx
 // src/app/layout.tsx
-import { ClerkProvider } from '@clerk/nextjs'
-import { GeistSans, GeistMono } from 'geist/font'
-import './globals.css'
+import { ClerkProvider } from "@clerk/nextjs";
+import { GeistSans, GeistMono } from "geist/font";
+import "./globals.css";
 
 export const metadata = {
-  title: 'Multi-Tenant SaaS Demo',
-  description: 'Production-ready multi-tenant SaaS application',
-}
+  title: "Multi-Tenant SaaS Demo",
+  description: "Production-ready multi-tenant SaaS application",
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <ClerkProvider>
@@ -221,7 +224,7 @@ export default function RootLayout({
         <body>{children}</body>
       </html>
     </ClerkProvider>
-  )
+  );
 }
 ```
 
@@ -230,6 +233,7 @@ export default function RootLayout({
 The application is designed to work with any PostgreSQL-compatible database through schema-aware operations and explicit schema references.
 
 **Supported Database Providers:**
+
 - Docker PostgreSQL 12+
 - Supabase (Managed PostgreSQL)
 - AWS RDS PostgreSQL
@@ -330,13 +334,13 @@ export function getTenantDb(schemaName: string) {
         search_path: schemaName,
       },
     });
-    
+
     const tenantDb = drizzle(tenantSql);
-    
+
     tenantConnections.set(schemaName, tenantSql);
     tenantDbs.set(schemaName, tenantDb);
   }
-  
+
   return tenantDbs.get(schemaName)!;
 }
 
@@ -411,7 +415,9 @@ export class TenantManager {
       const existingTenantById = await this.getTenantByClerkOrgId(clerkOrgId);
       if (existingTenantById) {
         // Ensure migrations are applied even for existing tenants
-        await db.execute(`CREATE SCHEMA IF NOT EXISTS "${existingTenantById.schemaName}"`);
+        await db.execute(
+          `CREATE SCHEMA IF NOT EXISTS "${existingTenantById.schemaName}"`
+        );
         await this.applyTenantMigrations(existingTenantById.schemaName);
         return {
           success: true,
@@ -423,14 +429,19 @@ export class TenantManager {
       // Check if tenant already exists by slug (unique constraint)
       const existingTenantBySlug = await this.getTenantBySlug(slug);
       if (existingTenantBySlug) {
-        console.log(`⚠️  Tenant with slug '${slug}' already exists for different organization`);
+        console.log(
+          `⚠️  Tenant with slug '${slug}' already exists for different organization`
+        );
         // Update the existing tenant record with the new clerkOrgId
-        await db.update(tenants)
+        await db
+          .update(tenants)
           .set({ id: clerkOrgId, name, updatedAt: new Date() })
           .where(eq(tenants.slug, slug));
-        
+
         // Ensure migrations are applied
-        await db.execute(`CREATE SCHEMA IF NOT EXISTS "${existingTenantBySlug.schemaName}"`);
+        await db.execute(
+          `CREATE SCHEMA IF NOT EXISTS "${existingTenantBySlug.schemaName}"`
+        );
         await this.applyTenantMigrations(existingTenantBySlug.schemaName);
         return {
           success: true,
@@ -462,16 +473,16 @@ export class TenantManager {
 
   private static async applyTenantMigrations(schemaName: string) {
     console.log(`📝 Applying migrations to tenant: ${schemaName}`);
-    
+
     // Get all migration files for tenants
     const migrationsPath = join(process.cwd(), "src/db/migrations/tenant");
     const migrationFiles = readdirSync(migrationsPath)
       .filter((file) => file.endsWith(".sql"))
       .sort(); // Apply migrations in order
-    
+
     // Get tenant-specific database connection
     const tenantDb = getTenantDb(schemaName);
-    
+
     // Create migrations tracking table if it doesn't exist
     await tenantDb.execute(`
       CREATE TABLE IF NOT EXISTS "_migrations" (
@@ -488,7 +499,7 @@ export class TenantManager {
     const appliedSet = new Set(
       appliedMigrations.map((row: any) => row.filename)
     );
-    
+
     // Apply each migration to the tenant schema
     for (const migrationFile of migrationFiles) {
       if (appliedSet.has(migrationFile)) {
@@ -497,13 +508,13 @@ export class TenantManager {
       }
 
       console.log(`  🔄 Applying ${migrationFile}...`);
-      
+
       const migrationPath = join(migrationsPath, migrationFile);
       const migrationSql = readFileSync(migrationPath, "utf8");
-      
+
       // Replace schema placeholders with actual tenant schema name
       const tenantSql = migrationSql.replace(/\$TENANT_SCHEMA\$/g, schemaName);
-      
+
       // Execute migration with tenant-specific connection
       await tenantDb.execute(tenantSql);
 
@@ -512,7 +523,7 @@ export class TenantManager {
         INSERT INTO "_migrations" (filename) VALUES ('${migrationFile}')
       `);
     }
-    
+
     console.log(`  ✅ All migrations applied to ${schemaName}`);
   }
 
@@ -556,15 +567,18 @@ export class TenantManager {
 The `TenantManager.createTenant()` method includes several robustness features for production environments:
 
 **1. Existing Tenant Handling**
+
 - **By Organization ID**: If the same Clerk organization calls the webhook multiple times, it ensures migrations are applied
 - **By Slug**: If an organization is deleted and recreated in Clerk with the same name, it updates the existing tenant record with the new organization ID
 
 **2. Migration Consistency**
+
 - Always applies missing migrations for existing tenants
-- Creates schema if it doesn't exist (handles partial creation scenarios)  
+- Creates schema if it doesn't exist (handles partial creation scenarios)
 - Idempotent migration tracking prevents duplicate applications
 
 **3. Production Edge Cases**
+
 - **Webhook retry scenarios**: Handles multiple webhook deliveries gracefully
 - **Organization recreation**: Seamlessly handles Clerk org deletion/recreation
 - **Schema drift**: Ensures existing tenants get latest schema updates
@@ -575,11 +589,13 @@ This ensures robust operation across different deployment scenarios, database pr
 #### Serverless Deployment Considerations
 
 **File System Access in Vercel/Serverless**
+
 - Uses `process.cwd()` for absolute paths instead of relative paths (`./src/...`)
 - Ensures migration files are accessible in serverless runtime environments
 - Includes comprehensive error logging to debug deployment-specific issues
 
 **Migration File Deployment**
+
 - Migration files in `src/db/migrations/tenant/` must be included in deployment
 - Vercel automatically includes TypeScript source files in serverless functions
 - File paths are resolved at runtime based on the serverless function's working directory
@@ -638,7 +654,7 @@ async function migrateTenants() {
       // Check if tables already exist (for existing tenants)
       const tablesExist = await tenantDb.execute(`
         SELECT EXISTS (
-          SELECT FROM information_schema.tables 
+          SELECT FROM information_schema.tables
           WHERE table_name = 'users'
         ) as users_exists
       `);
@@ -868,9 +884,9 @@ export default clerkMiddleware();
 export const config = {
   matcher: [
     // Skip Next.js internals and all static files, unless found in search params
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     // Always run for API routes
-    '/(api|trpc)(.*)',
+    "/(api|trpc)(.*)",
   ],
 };
 ```
@@ -897,7 +913,7 @@ import { Button } from "@/components/ui/button";
 export function Onboarding() {
   const { user } = useUser();
   const { userMemberships } = useOrganizationList({
-    userMemberships: true
+    userMemberships: true,
   });
   const router = useRouter();
 
@@ -907,10 +923,10 @@ export function Onboarding() {
     }
 
     const org = userMemberships.data[0].organization;
-    
+
     try {
       // Complete onboarding by updating the metadata
-      const onboardingResponse = await fetch(`/api/tenants/${org.slug}/users/onboarding`, {
+      const onboardingResponse = await fetch("/api/users/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
@@ -919,8 +935,8 @@ export function Onboarding() {
         throw new Error("Error completing onboarding");
       }
 
-      // Redirect to dashboard
-      router.push(`/${org.slug}/dashboard`);
+      // Redirect to dashboard  
+      router.push("/dashboard");
     } catch (error) {
       console.error("Error completing onboarding:", error);
       alert("Error completing onboarding. Please try again.");
@@ -933,7 +949,8 @@ export function Onboarding() {
         <CardHeader>
           <CardTitle>¡Bienvenido, {user?.firstName || "Usuario"}!</CardTitle>
           <CardDescription>
-            Tu organización ha sido creada exitosamente. ¡Estás listo para comenzar!
+            Tu organización ha sido creada exitosamente. ¡Estás listo para
+            comenzar!
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -941,11 +958,8 @@ export function Onboarding() {
             <div className="text-sm text-muted-foreground">
               Tu cuenta está configurada y lista para usar.
             </div>
-            
-            <Button 
-              onClick={handleCompleteOnboarding} 
-              className="w-full"
-            >
+
+            <Button onClick={handleCompleteOnboarding} className="w-full">
               Continuar al Dashboard
             </Button>
           </div>
@@ -959,8 +973,9 @@ export function Onboarding() {
 ### 2. Dashboard Page
 
 ```tsx
-// src/app/[tenant]/dashboard/page.tsx
+// src/app/dashboard/page.tsx
 import { auth } from "@clerk/nextjs/server";
+import { headers } from "next/headers";
 import { getTenantDb } from "@/db/config/database";
 import { TenantManager } from "@/db/config/tenant-manager";
 import { createUsersTable, createProjectsTable } from "@/db/schemas/tenant";
@@ -973,15 +988,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export default async function DashboardPage({
-  params,
-}: {
-  params: { tenant: string };
-}) {
-  const { userId } = await auth();
-  if (!userId) return null;
+export default async function DashboardPage() {
+  const { userId, orgSlug } = await auth();
+  if (!userId || !orgSlug) return null;
 
-  const tenant = await TenantManager.getTenantBySlug(params.tenant);
+  // Get tenant from header or fallback to orgSlug
+  const headersList = await headers();
+  const tenantSlug = headersList.get("x-current-tenant") || orgSlug;
+
+  const tenant = await TenantManager.getTenantBySlug(tenantSlug);
   if (!tenant) return null;
 
   const tenantDb = getTenantDb(tenant.schemaName);
@@ -1059,48 +1074,123 @@ export default async function DashboardPage({
 
 ## API Routes
 
-### 1. Tenant User Management
+The application uses a centralized tenant context system for clean, header-based routing in API routes.
+
+### 1. API Tenant Context System
+
+The `api-tenant-context.ts` utility provides centralized tenant resolution, authentication, and database access for all API routes:
 
 ```typescript
-// src/app/api/tenants/[slug]/users/onboarding/route.ts
+// src/lib/api-tenant-context.ts
 import { auth } from "@clerk/nextjs/server";
-import { getTenantDb } from "@/db/config/database";
+import { headers } from "next/headers";
 import { TenantManager } from "@/db/config/tenant-manager";
+import { getTenantDb } from "@/db/config/database";
 import { createUsersTable } from "@/db/schemas/tenant";
 import { eq } from "drizzle-orm";
-import { NextResponse } from "next/server";
 
-export async function POST(
-  req: Request,
-  { params }: { params: { slug: string } }
-) {
-  const { userId } = await auth();
+export interface ApiTenantContext {
+  userId: string;
+  orgSlug: string;
+  tenantRecord: Awaited<ReturnType<typeof TenantManager.getTenantBySlug>>;
+  tenantDb: ReturnType<typeof getTenantDb>;
+  currentUser: TenantUser;
+}
 
-  if (!userId) {
-    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+export async function getApiTenantContext(): Promise<
+  ApiTenantContext | { error: string; status: number }
+> {
+  const { userId, orgSlug } = await auth();
+
+  if (!userId || !orgSlug) {
+    return { error: "No autorizado", status: 401 };
+  }
+
+  // Try to get tenant from header first, fallback to orgSlug
+  const headersList = await headers();
+  const tenantFromHeader = headersList.get("x-current-tenant");
+  const tenantSlug = tenantFromHeader || orgSlug;
+
+  // Security check: ensure user's org matches requested tenant
+  if (tenantSlug !== orgSlug) {
+    return { error: "Acceso no autorizado al tenant", status: 403 };
   }
 
   try {
-    const tenant = await TenantManager.getTenantBySlug(params.slug);
-    if (!tenant) {
-      return NextResponse.json(
-        { error: "Tenant no encontrado" },
-        { status: 404 }
-      );
+    const tenantRecord = await TenantManager.getTenantBySlug(tenantSlug);
+    if (!tenantRecord) {
+      return { error: "Tenant no encontrado", status: 404 };
     }
 
-    const tenantDb = getTenantDb(tenant.schemaName);
-    const users = createUsersTable(tenant.schemaName);
+    const tenantDb = getTenantDb(tenantRecord.schemaName);
+    const users = createUsersTable(tenantRecord.schemaName);
+
+    const [currentUser] = await tenantDb
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!currentUser) {
+      return { error: "Usuario no encontrado en el tenant", status: 404 };
+    }
+
+    return {
+      userId,
+      orgSlug,
+      tenantRecord,
+      tenantDb,
+      currentUser,
+    };
+  } catch (error) {
+    console.error("Error getting tenant context:", error);
+    return { error: "Error interno del servidor", status: 500 };
+  }
+}
+```
+
+**Key Benefits:**
+
+- **Centralized Logic**: Single source of truth for tenant resolution
+- **Header Support**: Reads `x-current-tenant` header with orgSlug fallback  
+- **Security**: Validates user access to requested tenant
+- **Error Handling**: Consistent error responses across all API routes
+- **Type Safety**: Full TypeScript support with proper interfaces
+
+### 2. Tenant User Management
+
+```typescript
+// src/app/api/users/onboarding/route.ts
+import { createUsersTable } from "@/db/schemas/tenant";
+import { NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
+import { getApiTenantContext } from "@/lib/api-tenant-context";
+
+export async function POST() {
+  const context = await getApiTenantContext();
+  
+  if ('error' in context) {
+    return NextResponse.json({ error: context.error }, { status: context.status });
+  }
+
+  const { tenantDb, tenantRecord, userId } = context;
+
+  try {
+    const users = createUsersTable(tenantRecord.schemaName);
 
     // Update user metadata to mark onboarding as complete
     await tenantDb
       .update(users)
       .set({
         metadata: { onboardingComplete: true },
+        updatedAt: new Date(),
       })
       .where(eq(users.id, userId));
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+      success: true,
+      message: "Onboarding completed successfully" 
+    });
   } catch (error) {
     console.error("Error completing onboarding:", error);
     return NextResponse.json(
@@ -1160,10 +1250,10 @@ export async function withTenantErrorHandling<T>(
     return await operation();
   } catch (error) {
     console.error(`Tenant ${tenantId} operation failed:`, error);
-    
+
     // Log to monitoring service
     await logTenantError(tenantId, error);
-    
+
     // Return user-friendly error
     throw new Error("An error occurred processing your request");
   }
@@ -1203,11 +1293,11 @@ export async function GET() {
   try {
     // Check database connectivity
     await db.execute(sql`SELECT 1`);
-    
+
     // Check tenant connections
     const activeTenants = await TenantManager.getAllTenants();
     const healthyTenants = [];
-    
+
     for (const tenant of activeTenants.slice(0, 5)) {
       try {
         const tenantDb = getTenantDb(tenant.schemaName);
@@ -1217,19 +1307,22 @@ export async function GET() {
         console.error(`Tenant ${tenant.slug} health check failed:`, error);
       }
     }
-    
+
     return Response.json({
-      status: 'healthy',
+      status: "healthy",
       timestamp: new Date().toISOString(),
-      database: 'connected',
+      database: "connected",
       tenantsChecked: healthyTenants.length,
       totalTenants: activeTenants.length,
     });
   } catch (error) {
-    return Response.json({
-      status: 'unhealthy',
-      error: error.message,
-    }, { status: 500 });
+    return Response.json(
+      {
+        status: "unhealthy",
+        error: error.message,
+      },
+      { status: 500 }
+    );
   }
 }
 ```
@@ -1239,20 +1332,23 @@ export async function GET() {
 ### Common Issues
 
 1. **Migration Failures**
+
    ```bash
    # Check migration status
    SELECT * FROM tenant_schema._migrations;
-   
+
    # Reset failed migration
    DELETE FROM tenant_schema._migrations WHERE filename = 'failed_migration.sql';
    ```
 
 2. **Connection Pool Exhaustion**
+
    - Monitor active connections per tenant
    - Implement connection cleanup on idle timeout
    - Use connection limits in production
 
 3. **Schema Sync Issues**
+
    - Always test migrations in development first
    - Use transactions for multi-step migrations
    - Keep migration rollback scripts

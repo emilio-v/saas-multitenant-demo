@@ -17,7 +17,7 @@ interface NewProjectFormProps {
   tenant: string;
 }
 
-export function NewProjectForm({ tenant }: NewProjectFormProps) {
+export function NewProjectForm({ tenant: _tenant }: NewProjectFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -32,7 +32,7 @@ export function NewProjectForm({ tenant }: NewProjectFormProps) {
     setLoading(true);
 
     try {
-      const response = await fetch(`/api/tenants/${tenant}/projects`, {
+      const response = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -43,7 +43,7 @@ export function NewProjectForm({ tenant }: NewProjectFormProps) {
       }
 
       const project = await response.json();
-      router.push(`/${tenant}/projects/${project.slug}`);
+      router.push(`/projects/${project.slug}`);
     } catch (error) {
       console.error("Error:", error);
       alert("Error al crear el proyecto. Por favor intenta de nuevo.");
@@ -107,7 +107,7 @@ export function NewProjectForm({ tenant }: NewProjectFormProps) {
                 disabled={loading}
               />
               <p className="text-xs text-muted-foreground">
-                URL: /{tenant}/projects/{formData.slug || "mi-proyecto-genial"}
+                URL: /projects/{formData.slug || "mi-proyecto-genial"}
               </p>
             </div>
 
@@ -148,7 +148,7 @@ export function NewProjectForm({ tenant }: NewProjectFormProps) {
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => router.push(`/${tenant}/projects`)}
+                onClick={() => router.push("/projects")}
                 disabled={loading}
               >
                 Cancelar

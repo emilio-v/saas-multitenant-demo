@@ -22,7 +22,7 @@ This is a **production-ready multi-tenant SaaS application** that demonstrates:
 - Advanced multi-tenant architecture using PostgreSQL schema-per-tenant isolation
 - Webhook-based automatic tenant provisioning via Clerk Organizations
 - Sophisticated migration system with tracking and rollback capabilities
-- Subdomain-based tenant routing (e.g., `acme.localhost:3000`)
+- Header-based tenant routing (e.g., `localhost:3000/dashboard` with `x-current-tenant: acme`)
 - Role-based permissions system (owner, admin, member, viewer)
 - Complete data isolation between tenants with security best practices
 
@@ -46,7 +46,7 @@ This is a Next.js 15.5.3 application using the App Router architecture with:
   - `page.tsx` - Home page component
   - `globals.css` - Global styles with Tailwind and CSS custom properties
   - `auth/` - Authentication pages (sign-in, sign-up, onboarding)
-  - `[tenant]/` - Dynamic tenant routes with subdomain-based routing
+  - `[tenant]/` - Dynamic tenant routes with header-based routing
   - `api/` - API routes for tenant and project management
 - `src/db/` - Database configuration and schemas
 - `src/components/` - Reusable UI components
@@ -61,7 +61,7 @@ This is a Next.js 15.5.3 application using the App Router architecture with:
 - **Webhook Integration**: Automatic tenant creation via Clerk organization webhooks
 - **Migration System**: Sophisticated database migrations with tracking, rollbacks, and tenant-specific applications
 - **Schema-Aware Operations**: All database operations use explicit schema references for cross-database compatibility
-- **Subdomain Routing**: Tenants access via `tenant-name.localhost:3000`
+- **Header-based Routing**: Clean URLs with tenant context via `x-current-tenant` header
 - **Authentication Flow**: Sign-up → Organization Creation (webhook) → Automatic Tenant Setup → Dashboard Access
 - **Role System**: owner, admin, member, viewer with granular permissions and database-level enforcement
 - **Security**: Parameterized queries, input validation, role-based access control, and tenant isolation

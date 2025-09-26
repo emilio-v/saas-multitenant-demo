@@ -37,7 +37,7 @@ export function DashboardView({
   recentProjects,
   totalProjects,
   totalUsers,
-  tenant,
+  tenant: _tenantSlug,
 }: DashboardViewProps) {
   return (
     <div className="space-y-6">
@@ -94,7 +94,7 @@ export function DashboardView({
               </p>
               {hasPermission(currentUser?.role || "", "projects:create") && (
                 <Button asChild>
-                  <Link href={`/${tenant}/projects/new`}>
+                  <Link href="/projects/new">
                     Crear tu primer proyecto
                   </Link>
                 </Button>
@@ -114,7 +114,7 @@ export function DashboardView({
                     </p>
                   </div>
                   <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/${tenant}/projects/${project.slug}`}>
+                    <Link href={`/projects/${project.slug}`}>
                       Ver
                     </Link>
                   </Button>

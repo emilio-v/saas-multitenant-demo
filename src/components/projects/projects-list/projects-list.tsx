@@ -31,7 +31,7 @@ interface ProjectsListProps {
   tenant: string;
 }
 
-export function ProjectsList({ projects, currentUser, tenant }: ProjectsListProps) {
+export function ProjectsList({ projects, currentUser, tenant: _tenantSlug }: ProjectsListProps) {
   const canCreateProject = hasPermission(currentUser?.role || "", "projects:create");
 
   return (
@@ -40,7 +40,7 @@ export function ProjectsList({ projects, currentUser, tenant }: ProjectsListProp
         <h2 className="text-3xl font-bold tracking-tight">Proyectos</h2>
         {canCreateProject && (
           <Button asChild>
-            <Link href={`/${tenant}/projects/new`}>Nuevo Proyecto</Link>
+            <Link href="/projects/new">Nuevo Proyecto</Link>
           </Button>
         )}
       </div>
@@ -59,7 +59,7 @@ export function ProjectsList({ projects, currentUser, tenant }: ProjectsListProp
                 {project.description || "Sin descripción"}
               </p>
               <Button variant="outline" size="sm" className="w-full" asChild>
-                <Link href={`/${tenant}/projects/${project.slug}`}>
+                <Link href={`/projects/${project.slug}`}>
                   Ver Proyecto
                 </Link>
               </Button>
@@ -76,7 +76,7 @@ export function ProjectsList({ projects, currentUser, tenant }: ProjectsListProp
             </p>
             {canCreateProject && (
               <Button asChild>
-                <Link href={`/${tenant}/projects/new`}>
+                <Link href="/projects/new">
                   Crear el primer proyecto
                 </Link>
               </Button>
